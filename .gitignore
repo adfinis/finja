@@ -1,0 +1,4 @@
+/.python-version
+/FINJA
+/finja.egg-info/
+*.pyc
