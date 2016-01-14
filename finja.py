@@ -90,11 +90,11 @@ def index_file(con, file_path, update=False):
             if res:
                 old_inode = res[0][0]
         if old_inode != inode:
-            with open(file_path, "r") as f:
-                retry = 0
-                shlex_settings = dict(_shlex_settings)
-                while retry <= 1:
-                    try:
+            retry = 0
+            shlex_settings = dict(_shlex_settings)
+            while retry <= 1:
+                try:
+                    with open(file_path, "r") as f:
                         inserts = []
                         lex = shlex.shlex(f, file_path)
                         ext = file_path.split(os.path.extsep)[-1]
@@ -108,12 +108,12 @@ def index_file(con, file_path, update=False):
                             inserts.append((bytes(t), file_path, lex.lineno))
                             t = lex.get_token()
                         break
-                    except ValueError:
-                        if retry == 0:
-                            shlex_settings['.default']['quotes'] = ""
-                        else:
-                            raise
-                    retry += 1
+                except ValueError:
+                    if retry == 0:
+                        shlex_settings['.default']['quotes'] = ""
+                    else:
+                        raise
+                retry += 1
             with con:
                 con.execute("""
                     DELETE FROM
