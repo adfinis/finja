@@ -6,7 +6,12 @@ import sqlite3
 import stat
 import sys
 
+import six
 from binaryornot.check import is_binary
+
+if six.PY2:
+    def bytes(x):
+        return sqlite3.Binary(x)
 
 _connection = None
 
@@ -100,7 +105,7 @@ def index_file(con, file_path, update=False):
                         )
                         t = lex.get_token()
                         while t:
-                            inserts.append((t, file_path, lex.lineno))
+                            inserts.append((bytes(t), file_path, lex.lineno))
                             t = lex.get_token()
                         break
                     except ValueError:
@@ -116,17 +121,12 @@ def index_file(con, file_path, update=False):
                     WHERE
                         file=?;
                 """, (file_path,))
-                try:
-                    con.executemany("""
-                        INSERT INTO
-                            finja(token, file, line)
-                        VALUES
-                            (?, ?, ?);
-                    """, inserts)
-                except sqlite3.ProgrammingError:
-                    if not update:
-                        print("%s: is binary, skipping (late)" % (file_path,))
-                    return
+                con.executemany("""
+                    INSERT INTO
+                        finja(token, file, line)
+                    VALUES
+                        (?, ?, ?);
+                """, inserts)
                 con.execute("""
                     INSERT OR REPLACE INTO
                         file(path, inode)
@@ -190,7 +190,7 @@ def search(
                         finja
                     WHERE
                         token=?
-                """, (word,)).fetchall()))
+                """, (bytes(word),)).fetchall()))
         else:
             for word in search:
                 res.append(set(con.execute("""
@@ -201,7 +201,7 @@ def search(
                         finja
                     WHERE
                         token=?
-                """, (word,)).fetchall()))
+                """, (bytes(word),)).fetchall()))
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)

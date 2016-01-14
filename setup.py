@@ -17,6 +17,7 @@ setup(
     },
     install_requires = [
         "binaryornot",
+        "six",
     ],
     author = "Jean-Louis Fuchs",
     author_email = "ganwell@fangorn.ch",
