@@ -70,26 +70,26 @@ def apply_shlex_settings(shlex_settings, ext, lex):
 
 
 def index_file(con, file_path, update=False):
-    if is_binary(file_path):
-        if not update:
-            print("%s: is binary, skipping" % (file_path,))
-        return
-    else:
-        mode = os.stat(file_path)
-        inode = mode[stat.ST_INO]
-        old_inode = None
-        with con:
-            res = con.execute("""
-                SELECT
-                    inode
-                FROM
-                    file
-                WHERE
-                    path=?;
-            """, (file_path,)).fetchall()
-            if res:
-                old_inode = res[0][0]
-        if old_inode != inode:
+    mode = os.stat(file_path)
+    inode = mode[stat.ST_INO]
+    old_inode = None
+    with con:
+        res = con.execute("""
+            SELECT
+                inode
+            FROM
+                file
+            WHERE
+                path=?;
+        """, (file_path,)).fetchall()
+        if res:
+            old_inode = res[0][0]
+    if old_inode != inode:
+        inserts = []
+        if is_binary(file_path):
+            if not update:
+                print("%s: is binary, skipping" % (file_path,))
+        else:
             retry = 0
             shlex_settings = dict(_shlex_settings)
             while retry <= 1:
@@ -114,29 +114,29 @@ def index_file(con, file_path, update=False):
                     else:
                         raise
                 retry += 1
-            with con:
-                con.execute("""
-                    DELETE FROM
-                        finja
-                    WHERE
-                        file=?;
-                """, (file_path,))
-                con.executemany("""
-                    INSERT INTO
-                        finja(token, file, line)
-                    VALUES
-                        (?, ?, ?);
-                """, inserts)
-                con.execute("""
-                    INSERT OR REPLACE INTO
-                        file(path, inode)
-                    VALUES
-                        (?, ?);
-                """, (file_path, inode))
             print("%s: indexed" % (file_path,))
-        else:
-            if not update:
-                print("%s: uptodate" % (file_path,))
+        with con:
+            con.execute("""
+                DELETE FROM
+                    finja
+                WHERE
+                    file=?;
+            """, (file_path,))
+            con.executemany("""
+                INSERT INTO
+                    finja(token, file, line)
+                VALUES
+                    (?, ?, ?);
+            """, inserts)
+            con.execute("""
+                INSERT OR REPLACE INTO
+                    file(path, inode)
+                VALUES
+                    (?, ?);
+            """, (file_path, inode))
+    else:
+        if not update:
+            print("%s: uptodate" % (file_path,))
 
 
 def index():
