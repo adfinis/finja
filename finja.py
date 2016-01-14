@@ -4,6 +4,7 @@ import sqlite3
 import os
 import shlex
 import stat
+import linecache
 from binaryornot.check import is_binary
 
 _connection = None
@@ -203,11 +204,19 @@ def search(
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)
-    for match in res_set:
-        path = match[0]
-        if path.startswith("./"):
-            path = path[2:]
-        print("%s:%s" % (path, match[1]))
+    if file_mode:
+        for match in res_set:
+            print(match[0])
+    else:
+        for match in res_set:
+            path = match[0]
+            if path.startswith("./"):
+                path = path[2:]
+            print("%s:%5d\t%s" % (
+                path,
+                match[1],
+                linecache.getline(match[0], match[1]).strip()
+            ))
 
 
 def main(argv=None):
