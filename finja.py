@@ -1,10 +1,11 @@
 import argparse
-import sys
-import sqlite3
+import linecache
 import os
 import shlex
+import sqlite3
 import stat
-import linecache
+import sys
+
 from binaryornot.check import is_binary
 
 _connection = None
