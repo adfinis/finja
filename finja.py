@@ -22,10 +22,10 @@ _shlex_settings = {
     '.override0': {
     },
     '.override1': {
-        'quotes': ""
+        'whitespace_split': True
     },
     '.override2': {
-        'whitespace_split': True
+        'quotes': ""
     },
 }
 
