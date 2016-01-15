@@ -311,9 +311,13 @@ def search(
                 token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
-                        file
+                        f.path
                     FROM
-                        finja
+                        finja as i
+                    JOIN
+                        file as f
+                    ON
+                       i.file_id = f.id
                     WHERE
                         token_id=?
                 """, (token,)).fetchall()))
@@ -338,10 +342,17 @@ def search(
     for search_set in res:
         res_set.intersection_update(search_set)
     if file_mode:
-        for match in res_set:
+        for match in sorted(
+                res_set,
+                reverse=True
+        ):
             print(match[0])
     else:
-        for match in res_set:
+        for match in sorted(
+                res_set,
+                key=lambda x: (x[0], -x[1]),
+                reverse=True
+        ):
             path = match[0]
             if path.startswith("./"):
                 path = path[2:]
