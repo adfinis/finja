@@ -60,7 +60,7 @@ class TokenDict(dict):
 def cleanup(string):
     if len(string) <= 16:
         return string.lower()
-    return hashlib.md5(string).digest()
+    return hashlib.md5(string.lower()).digest()
 
 
 def get_db(create=False):
