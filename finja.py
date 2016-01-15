@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import linecache
 import os
 import shlex
@@ -54,6 +55,12 @@ class TokenDict(dict):
                 ret = cur.lastrowid
         self[key] = ret
         return ret
+
+
+def cleanup(string):
+    if len(string) <= 16:
+        return string.lower()
+    return hashlib.md5(string).digest()
 
 
 def get_db(create=False):
@@ -148,11 +155,13 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
-                            inserts.append((
-                                token_dict[t],
-                                file_path,
-                                lex.lineno
-                            ))
+                            for string in t.split():
+                                word = cleanup(string)
+                                inserts.append((
+                                    token_dict[word],
+                                    file_path,
+                                    lex.lineno
+                                ))
                             t = lex.get_token()
                         break
                 except ValueError:
@@ -232,6 +241,7 @@ def search(
     with con:
         if file_mode:
             for word in search:
+                word = cleanup(word)
                 token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
@@ -243,6 +253,7 @@ def search(
                 """, (token,)).fetchall()))
         else:
             for word in search:
+                word = cleanup(word)
                 token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
