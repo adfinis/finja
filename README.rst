@@ -24,4 +24,11 @@ Find huhu in the index.
 
 Thats it and it works.
 
+Tipp: If you are sure that your system survives till everything is indexed use:
+
+.. code:: bash
+
+   eatmydata finja -i
+
+
 By dv@winged.ch and ganwell@fangorn.ch
