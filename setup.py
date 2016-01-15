@@ -19,8 +19,8 @@ setup(
         "binaryornot",
         "six",
     ],
-    author = "Jean-Louis Fuchs",
-    author_email = "ganwell@fangorn.ch",
+    author = "David Vogt, Jean-Louis Fuchs",
+    author_email = "dv@winged.ch, ganwell@fangorn.ch",
     description = (
         "Index stuff and find it fast and without bloat"
     ),

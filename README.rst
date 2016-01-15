@@ -23,3 +23,5 @@ Find huhu in the index.
    find huhu
 
 Thats it and it works.
+
+By dv@winged.ch and ganwell@fangorn.ch

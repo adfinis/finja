@@ -11,7 +11,7 @@ import six
 from binaryornot.check import is_binary
 
 if six.PY2:
-    def bytes(x):
+    def blob(x):
         return sqlite3.Binary(x)
 
 _db_cache = None
@@ -50,7 +50,7 @@ class TokenDict(dict):
                     token
                 WHERE
                     string = ?;
-            """, (bytes(key),)).fetchall()
+            """, (blob(key),)).fetchall()
             if res:
                 ret = res[0][0]
             else:
@@ -59,7 +59,7 @@ class TokenDict(dict):
                         token(string)
                     VALUES
                         (?);
-                """, (bytes(key),))
+                """, (blob(key),))
                 ret = cur.lastrowid
         self[key] = ret
         return ret
