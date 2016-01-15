@@ -13,7 +13,7 @@ if six.PY2:
     def bytes(x):
         return sqlite3.Binary(x)
 
-_connection = None
+_db_cache = None
 
 _shlex_settings = {
     '.default': {
@@ -26,38 +26,79 @@ _ignore_dir = set([
 ])
 
 
+class TokenDict(dict):
+    def __init__(self, db, *args, **kwargs):
+        super(TokenDict, self).__init__(*args, **kwargs)
+        self.db = db
+
+    def __missing__(self, key):
+        with self.db:
+            cur = self.db.cursor()
+            res = cur.execute("""
+                SELECT
+                    id
+                FROM
+                    token
+                WHERE
+                    string = ?;
+            """, (bytes(key),)).fetchall()
+            if res:
+                ret = res[0][0]
+            else:
+                cur.execute("""
+                    INSERT INTO
+                        token(string)
+                    VALUES
+                        (?);
+                """, (bytes(key),))
+                ret = cur.lastrowid
+        self[key] = ret
+        return ret
+
+
 def get_db(create=False):
-    global _connection
-    if _connection:
-        return _connection  # noqa
+    global _db_cache
+    if _db_cache:
+        return _db_cache  # noqa
     exists = os.path.exists("FINJA")
     if not (create or exists):
         raise ValueError("Could not find FINJA")
-    _connection = sqlite3.connect("FINJA")  # noqa
+    connection = sqlite3.connect("FINJA")  # noqa
     if not exists:
-        _connection.execute("""
+        connection.execute("""
             CREATE TABLE
                 finja(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    token BLOB,
+                    token_id INTEGER,
                     file TEXT,
                     line INTEGER
                 );
         """)
-        _connection.execute("""
+        connection.execute("""
+            CREATE TABLE
+                token(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    string BLOB
+                );
+        """)
+        connection.execute("""
+            CREATE INDEX token_string_idx ON token (string);
+        """)
+        connection.execute("""
             CREATE TABLE
                 file(
                     path TEXT PRIMARY KEY,
                     inode INTEGER
                 );
         """)
-        _connection.execute("""
-            CREATE INDEX finja_token_idx ON finja (token);
+        connection.execute("""
+            CREATE INDEX finja_token_id_idx ON finja (token_id);
         """)
-        _connection.execute("""
+        connection.execute("""
             CREATE INDEX finja_file_idx ON finja (file);
         """)
-    return _connection
+    _db_cache = (connection, TokenDict(connection))
+    return _db_cache
 
 
 def apply_shlex_settings(shlex_settings, ext, lex):
@@ -69,10 +110,12 @@ def apply_shlex_settings(shlex_settings, ext, lex):
             setattr(lex, key, settings[key])
 
 
-def index_file(con, file_path, update=False):
-    mode = os.stat(file_path)
-    inode = mode[stat.ST_INO]
-    old_inode = None
+def index_file(db, file_path, update = False):
+    con        = db[0]
+    token_dict = db[1]
+    mode       = os.stat(file_path)
+    inode      = mode[stat.ST_INO]
+    old_inode  = None
     with con:
         res = con.execute("""
             SELECT
@@ -105,7 +148,11 @@ def index_file(con, file_path, update=False):
                         )
                         t = lex.get_token()
                         while t:
-                            inserts.append((bytes(t), file_path, lex.lineno))
+                            inserts.append((
+                                token_dict[t],
+                                file_path,
+                                lex.lineno
+                            ))
                             t = lex.get_token()
                         break
                 except ValueError:
@@ -124,7 +171,7 @@ def index_file(con, file_path, update=False):
             """, (file_path,))
             con.executemany("""
                 INSERT INTO
-                    finja(token, file, line)
+                    finja(token_id, file, line)
                 VALUES
                     (?, ?, ?);
             """, inserts)
@@ -140,11 +187,11 @@ def index_file(con, file_path, update=False):
 
 
 def index():
-    con = get_db(create=True)
-    do_index(con)
+    db = get_db(create=True)
+    do_index(db)
 
 
-def do_index(con, update=False):
+def do_index(db, update=False):
     for dirpath, _, filenames in os.walk("."):
         if set(dirpath.split(os.sep)).intersection(_ignore_dir):
             continue
@@ -153,8 +200,8 @@ def do_index(con, update=False):
                 dirpath,
                 filename
             )
-            index_file(con, file_path, update)
-    con.execute("VACUUM;")
+            index_file(db, file_path, update)
+    db[0].execute("VACUUM;")
 
 
 def find_finja():
@@ -176,23 +223,27 @@ def search(
 ):
     finja = find_finja()
     os.chdir(finja)
-    con = get_db(create=False)
+    db = get_db(create=False)
+    con = db[0]
+    token_dict = db[1]
     if update:
-        do_index(con, update=True)
+        do_index(db, update=True)
     res = []
     with con:
         if file_mode:
             for word in search:
+                token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
                         file
                     FROM
                         finja
                     WHERE
-                        token=?
-                """, (bytes(word),)).fetchall()))
+                        token_id=?
+                """, (token,)).fetchall()))
         else:
             for word in search:
+                token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
                         file,
@@ -200,8 +251,8 @@ def search(
                     FROM
                         finja
                     WHERE
-                        token=?
-                """, (bytes(word),)).fetchall()))
+                        token_id=?
+                """, (token,)).fetchall()))
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)
