@@ -13,6 +13,9 @@ from binaryornot.check import is_binary
 if six.PY2:
     def blob(x):
         return sqlite3.Binary(x)
+else:
+    def blob(x):
+        return x
 
 _db_cache = None
 
@@ -68,7 +71,7 @@ class TokenDict(dict):
 def cleanup(string):
     if len(string) <= 16:
         return string.lower()
-    return hashlib.md5(string.lower()).digest()
+    return hashlib.md5(string.lower().encode("UTF-8")).digest()
 
 
 def get_db(create=False):
