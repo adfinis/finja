@@ -1,4 +1,5 @@
 import argparse
+import copy
 import hashlib
 import linecache
 import os
@@ -140,12 +141,11 @@ def index_file(db, file_path, update = False):
             if not update:
                 print("%s: is binary, skipping" % (file_path,))
         else:
-            retry = 0
-            shlex_settings = dict(_shlex_settings)
-            while retry <= 1:
+            pass_ = 0
+            shlex_settings = copy.deepcopy(_shlex_settings)
+            while pass_ <= 1:
                 try:
                     with open(file_path, "r") as f:
-                        inserts = []
                         lex = shlex.shlex(f, file_path)
                         ext = file_path.split(os.path.extsep)[-1]
                         apply_shlex_settings(
@@ -155,21 +155,19 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
-                            for string in t.split():
-                                word = cleanup(string)
-                                inserts.append((
-                                    token_dict[word],
-                                    file_path,
-                                    lex.lineno
-                                ))
+                            word = cleanup(t)
+                            inserts.append((
+                                token_dict[word],
+                                file_path,
+                                lex.lineno
+                            ))
                             t = lex.get_token()
-                        break
-                except ValueError:
-                    if retry == 0:
+                    if pass_ == 0:
                         shlex_settings['.default']['quotes'] = ""
-                    else:
+                except ValueError:
+                    if pass_ == 1:
                         raise
-                retry += 1
+                pass_ += 1
             print("%s: indexed" % (file_path,))
         with con:
             con.execute("""
@@ -183,7 +181,7 @@ def index_file(db, file_path, update = False):
                     finja(token_id, file, line)
                 VALUES
                     (?, ?, ?);
-            """, inserts)
+            """, list(set(inserts)))
             con.execute("""
                 INSERT OR REPLACE INTO
                     file(path, inode)
