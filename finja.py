@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import linecache
+import math
 import os
 import shlex
 import sqlite3
@@ -36,6 +37,8 @@ _ignore_dir = set([
     ".git",
     ".svn"
 ])
+
+_context = 3
 
 
 class TokenDict(dict):
@@ -356,15 +359,36 @@ def search(
             path = match[0]
             if path.startswith("./"):
                 path = path[2:]
-            print("%s:%5d\t%s" % (
+            offset = math.floor(_context / 2)
+            context_list = []
+            for x in range(_context):
+                x -= offset
+                context_list.append(
+                    linecache.getline(match[0], match[1] + x)
+                )
+            strip_list = []
+            inside = False
+            for line in reversed(context_list):
+                if line.strip() or inside:
+                    inside = True
+                    strip_list.append(line)
+            context_list = []
+            inside = False
+            for line in reversed(strip_list):
+                if line.strip() or inside:
+                    inside = True
+                    context_list.append(line)
+            context = "|".join(context_list)
+            print("%s:%5d\n|%s" % (
                 path,
                 match[1],
-                linecache.getline(match[0], match[1])[:-1]
+                context
             ))
 
 
 def main(argv=None):
     """Parse the args and excute"""
+    global _context
     if not argv:  # pragma: no cover
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Index and find stuff')
@@ -387,13 +411,19 @@ def main(argv=None):
         action='store_true',
     )
     parser.add_argument(
+        '--context',
+        '-c',
+        help='Lines of context. Default 3',
+        default='3'
+    )
+    parser.add_argument(
         'search',
         help='search string',
         type=str,
         nargs='*',
-        default='all'
     )
     args = parser.parse_args(argv)
+    _context = int(args.context)  # noqa
     if args.index:
         index()
     if args.search:
