@@ -78,9 +78,15 @@ def get_db(create=False):
                 finja(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     token_id INTEGER,
-                    file TEXT,
+                    file_id INTEGER,
                     line INTEGER
                 );
+        """)
+        connection.execute("""
+            CREATE INDEX finja_token_id_idx ON finja (token_id);
+        """)
+        connection.execute("""
+            CREATE INDEX finja_file_idx ON finja (file_id);
         """)
         connection.execute("""
             CREATE TABLE
@@ -95,15 +101,13 @@ def get_db(create=False):
         connection.execute("""
             CREATE TABLE
                 file(
-                    path TEXT PRIMARY KEY,
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    path TEXT,
                     inode INTEGER
                 );
         """)
         connection.execute("""
-            CREATE INDEX finja_token_id_idx ON finja (token_id);
-        """)
-        connection.execute("""
-            CREATE INDEX finja_file_idx ON finja (file);
+            CREATE INDEX file_path_idx ON file (path);
         """)
     _db_cache = (connection, TokenDict(connection))
     return _db_cache
@@ -124,9 +128,11 @@ def index_file(db, file_path, update = False):
     mode       = os.stat(file_path)
     inode      = mode[stat.ST_INO]
     old_inode  = None
+    file_      = None
     with con:
         res = con.execute("""
             SELECT
+                id,
                 inode
             FROM
                 file
@@ -134,8 +140,28 @@ def index_file(db, file_path, update = False):
                 path=?;
         """, (file_path,)).fetchall()
         if res:
+            file_     = res[0][1]
             old_inode = res[0][0]
     if old_inode != inode:
+        with con:
+            if file_ is None:
+                cur = con.cursor()
+                cur.execute("""
+                    INSERT INTO
+                        file(path, inode)
+                    VALUES
+                        (?, ?);
+                """, (file_path, inode))
+                file_ = cur.lastrowid
+            else:
+                con.execute("""
+                    UPDATE
+                        file
+                    SET
+                        inode = ?
+                    WHERE
+                        id = ?
+                """, (inode, file_))
         inserts = []
         if is_binary(file_path):
             if not update:
@@ -158,7 +184,7 @@ def index_file(db, file_path, update = False):
                             word = cleanup(t)
                             inserts.append((
                                 token_dict[word],
-                                file_path,
+                                file_,
                                 lex.lineno
                             ))
                             t = lex.get_token()
@@ -174,20 +200,14 @@ def index_file(db, file_path, update = False):
                 DELETE FROM
                     finja
                 WHERE
-                    file=?;
-            """, (file_path,))
+                    file_id=?;
+            """, (file_,))
             con.executemany("""
                 INSERT INTO
-                    finja(token_id, file, line)
+                    finja(token_id, file_id, line)
                 VALUES
                     (?, ?, ?);
             """, list(set(inserts)))
-            con.execute("""
-                INSERT OR REPLACE INTO
-                    file(path, inode)
-                VALUES
-                    (?, ?);
-            """, (file_path, inode))
     else:
         if not update:
             print("%s: uptodate" % (file_path,))
@@ -255,10 +275,14 @@ def search(
                 token = token_dict[word]
                 res.append(set(con.execute("""
                     SELECT DISTINCT
-                        file,
-                        line
+                        f.path,
+                        i.line
                     FROM
-                        finja
+                        finja as i
+                    JOIN
+                        file as f
+                    ON
+                       i.file_id = f.id
                     WHERE
                         token_id=?
                 """, (token,)).fetchall()))
@@ -276,7 +300,7 @@ def search(
             print("%s:%5d\t%s" % (
                 path,
                 match[1],
-                linecache.getline(match[0], match[1]).strip()
+                linecache.getline(match[0], match[1])[:-1]
             ))
 
 
