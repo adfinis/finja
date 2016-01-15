@@ -150,8 +150,8 @@ def index_file(db, file_path, update = False):
                 path=?;
         """, (file_path,)).fetchall()
         if res:
-            file_     = res[0][1]
-            old_inode = res[0][0]
+            file_     = res[0][0]
+            old_inode = res[0][1]
     if old_inode != inode:
         with con:
             if file_ is None:
@@ -178,9 +178,10 @@ def index_file(db, file_path, update = False):
                 print("%s: is binary, skipping" % (file_path,))
         else:
             pass_ = 0
-            while pass_ <= 2:
-                try:
-                    with open(file_path, "r") as f:
+            with open(file_path, "r") as f:
+                while pass_ <= 2:
+                    try:
+                        f.seek(0)
                         lex = shlex.shlex(f, file_path)
                         ext = file_path.split(os.path.extsep)[-1]
                         apply_shlex_settings(
@@ -197,10 +198,10 @@ def index_file(db, file_path, update = False):
                                 lex.lineno
                             ))
                             t = lex.get_token()
-                except ValueError:
-                    if pass_ >= 2:
-                        raise
-                pass_ += 1
+                    except ValueError:
+                        if pass_ >= 2:
+                            raise
+                    pass_ += 1
             all_inserts    = len(inserts)
             inserts        = list(set(inserts))
             unique_inserts = len(inserts)
