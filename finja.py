@@ -3,6 +3,7 @@ import hashlib
 import linecache
 import math
 import os
+import resource
 import shlex
 import sqlite3
 import stat
@@ -143,6 +144,12 @@ def apply_shlex_settings(pass_, ext, lex):
 def index_file(db, file_path, update = False):
     con        = db[0]
     token_dict = db[1]
+    usage      = float(resource.getrusage(
+        resource.RUSAGE_SELF
+    ).ru_maxrss) / 1024.0 / 1024.0
+    if usage > 512.0:
+        print("Clear cache")
+        token_dict.clear()
     mode       = os.stat(file_path)
     inode      = mode[stat.ST_INO]
     old_inode  = None
