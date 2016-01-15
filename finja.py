@@ -110,7 +110,8 @@ def get_db(create=False):
                 file(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     path TEXT,
-                    inode INTEGER
+                    inode INTEGER,
+                    found INTEGER DEFAULT 1
                 );
         """)
         connection.execute("""
@@ -163,15 +164,6 @@ def index_file(db, file_path, update = False):
                         (?, ?);
                 """, (file_path, inode))
                 file_ = cur.lastrowid
-            else:
-                con.execute("""
-                    UPDATE
-                        file
-                    SET
-                        inode = ?
-                    WHERE
-                        id = ?
-                """, (inode, file_))
         inserts = []
         if is_binary(file_path):
             if not update:
@@ -226,6 +218,16 @@ def index_file(db, file_path, update = False):
     else:
         if not update:
             print("%s: uptodate" % (file_path,))
+        with con:
+            con.execute("""
+                UPDATE
+                    file
+                SET
+                    inode = ?,
+                    found = 1
+                WHERE
+                    id = ?
+            """, (inode, file_))
 
 
 def index():
@@ -234,6 +236,13 @@ def index():
 
 
 def do_index(db, update=False):
+    con = db[0]
+    with con:
+        con.execute("""
+            UPDATE
+                file
+            SET found = 0
+        """)
     for dirpath, _, filenames in os.walk("."):
         if set(dirpath.split(os.sep)).intersection(_ignore_dir):
             continue
@@ -243,7 +252,27 @@ def do_index(db, update=False):
                 filename
             )
             index_file(db, file_path, update)
-    db[0].execute("VACUUM;")
+    with con:
+        con.execute("""
+            DELETE FROM
+                finja
+            WHERE
+                file_id IN (
+                    SELECT
+                        id
+                    FROM
+                        file
+                    WHERE
+                        found = 0
+                )
+        """)
+        con.execute("""
+            DELETE FROM
+                file
+            WHERE
+                found = 0
+            """)
+        con.execute("VACUUM;")
 
 
 def find_finja():
