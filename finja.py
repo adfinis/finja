@@ -1,5 +1,4 @@
 import argparse
-import copy
 import hashlib
 import linecache
 import os
@@ -19,7 +18,15 @@ _db_cache = None
 
 _shlex_settings = {
     '.default': {
-    }
+    },
+    '.override0': {
+    },
+    '.override1': {
+        'quotes': ""
+    },
+    '.override2': {
+        'whitespace_split': True
+    },
 }
 
 _ignore_dir = set([
@@ -113,10 +120,13 @@ def get_db(create=False):
     return _db_cache
 
 
-def apply_shlex_settings(shlex_settings, ext, lex):
-    to_apply = [shlex_settings['.default']]
-    if ext in shlex_settings:
-        to_apply.append(shlex_settings[ext])
+def apply_shlex_settings(pass_, ext, lex):
+    to_apply = [_shlex_settings['.default']]
+    if ext in _shlex_settings:
+        to_apply.append(_shlex_settings[ext])
+    to_apply.append(
+        _shlex_settings['.override%s' % pass_]
+    )
     for settings in to_apply:
         for key in settings.keys():
             setattr(lex, key, settings[key])
@@ -168,14 +178,13 @@ def index_file(db, file_path, update = False):
                 print("%s: is binary, skipping" % (file_path,))
         else:
             pass_ = 0
-            shlex_settings = copy.deepcopy(_shlex_settings)
-            while pass_ <= 1:
+            while pass_ <= 2:
                 try:
                     with open(file_path, "r") as f:
                         lex = shlex.shlex(f, file_path)
                         ext = file_path.split(os.path.extsep)[-1]
                         apply_shlex_settings(
-                            shlex_settings,
+                            pass_,
                             ext,
                             lex
                         )
@@ -188,13 +197,18 @@ def index_file(db, file_path, update = False):
                                 lex.lineno
                             ))
                             t = lex.get_token()
-                    if pass_ == 0:
-                        shlex_settings['.default']['quotes'] = ""
                 except ValueError:
-                    if pass_ == 1:
+                    if pass_ >= 2:
                         raise
                 pass_ += 1
-            print("%s: indexed" % (file_path,))
+            all_inserts    = len(inserts)
+            inserts        = list(set(inserts))
+            unique_inserts = len(inserts)
+            print("%s: indexed %s/%s" % (
+                file_path,
+                all_inserts,
+                unique_inserts
+            ))
         with con:
             con.execute("""
                 DELETE FROM
@@ -207,7 +221,7 @@ def index_file(db, file_path, update = False):
                     finja(token_id, file_id, line)
                 VALUES
                     (?, ?, ?);
-            """, list(set(inserts)))
+            """, inserts)
     else:
         if not update:
             print("%s: uptodate" % (file_path,))
