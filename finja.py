@@ -120,6 +120,7 @@ def get_db(create=False):
         connection.execute("""
             CREATE INDEX file_path_idx ON file (path);
         """)
+    connection.commit()
     _db_cache = (connection, TokenDict(connection))
     return _db_cache
 
