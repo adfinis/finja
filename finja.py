@@ -42,7 +42,7 @@ _ignore_dir = set([
     ".svn"
 ])
 
-_context = 1
+_args = None
 
 
 class TokenDict(dict):
@@ -264,10 +264,10 @@ def do_index(db, update=False):
         if set(dirpath.split(os.sep)).intersection(_ignore_dir):
             continue
         for filename in filenames:
-            file_path = os.path.join(
+            file_path = os.path.abspath(os.path.join(
                 dirpath,
                 filename
-            )
+            ))
             index_file(db, file_path, update)
     with con:
         con.execute("""
@@ -333,7 +333,9 @@ def search(
                        i.file_id = f.id
                     WHERE
                         token_id=?
-                """, (token,)).fetchall()))
+                    LIMIT
+                        ?
+                """, (token, _args.limit)).fetchall()))
         else:
             for word in search:
                 word = cleanup(word)
@@ -350,7 +352,9 @@ def search(
                        i.file_id = f.id
                     WHERE
                         token_id=?
-                """, (token,)).fetchall()))
+                    LIMIT
+                        ?
+                """, (token, _args.limit)).fetchall()))
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)
@@ -361,24 +365,34 @@ def search(
         ):
             print(match[0])
     else:
+        dirname = None
         for match in sorted(
                 res_set,
                 key=lambda x: (x[0], -x[1]),
                 reverse=True
         ):
             path = match[0]
+            if not _args.raw:
+                new_dirname = os.path.dirname(path)
+                if dirname != new_dirname:
+                    dirname = new_dirname
+                    print("%s:" % dirname)
+                file_name = os.path.basename(path)
+            else:
+                file_name = path
             if path.startswith("./"):
                 path = path[2:]
-            if _context == 1:
+            context = _args.context
+            if context == 1:
                 print("%s:%5d:%s" % (
-                    path,
+                    file_name,
                     match[1],
                     linecache.getline(match[0], match[1])[:-1]
                 ))
             else:
-                offset = math.floor(_context / 2)
+                offset = int(math.floor(context / 2))
                 context_list = []
-                for x in range(_context):
+                for x in range(context):
                     x -= offset
                     context_list.append(
                         linecache.getline(match[0], match[1] + x)
@@ -397,7 +411,7 @@ def search(
                         context_list.append(line)
                 context = "|".join(context_list)
                 print("%s:%5d\n|%s" % (
-                    path,
+                    file_name,
                     match[1],
                     context
                 ))
@@ -405,7 +419,7 @@ def search(
 
 def main(argv=None):
     """Parse the args and excute"""
-    global _context
+    global _args
     if not argv:  # pragma: no cover
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Index and find stuff')
@@ -430,8 +444,22 @@ def main(argv=None):
     parser.add_argument(
         '--context',
         '-c',
-        help='Lines of context. Default 1',
-        default='1'
+        help='Lines of context. Default: 1',
+        default=1,
+        type=int
+    )
+    parser.add_argument(
+        '--limit',
+        '-l',
+        help='Limit the output. Default: 40',
+        default=40,
+        type=int
+    )
+    parser.add_argument(
+        '--raw',
+        '-r',
+        help='Raw output to parse with outer tools',
+        action='store_true',
     )
     parser.add_argument(
         'search',
@@ -440,7 +468,7 @@ def main(argv=None):
         nargs='*',
     )
     args = parser.parse_args(argv)
-    _context = int(args.context)  # noqa
+    _args = args  # noqa
     if args.index:
         index()
     if args.search:
