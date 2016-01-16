@@ -53,6 +53,8 @@ _args = None
 
 _index_count = 0
 
+_python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
+
 
 class TokenDict(dict):
     def __init__(self, db, *args, **kwargs):
@@ -183,7 +185,7 @@ def get_db(create=False):
     return _db_cache
 
 
-if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+if _python_26:
     def path_compress(path, db):
         return path
 
@@ -429,8 +431,12 @@ def gen_search_query(pignore, file_mode):
             i.line
         """
     ignore_list = []
+    if _python_26:
+        filter_ = "AND f.path NOT LIKE ?"
+    else:
+        filter_ = "AND hex(f.path) NOT LIKE ?"
     for ignore in pignore:
-        ignore_list.append("AND hex(f.path) NOT LIKE ?")
+        ignore_list.append(filter_)
     return base.format(
         projection = projection,
         ignore = "\n".join(ignore_list)
@@ -453,10 +459,15 @@ def search(
     if not search:
         return
     res = []
-    bignore = []
-    for ignore in pignore:
-        tignore = token_dict[ignore]
-        bignore.append("%{0:04x}%".format(tignore))
+    if _python_26:
+        bignore = []
+        for ignore in pignore:
+            bignore.append("%{0}%".format(ignore))
+    else:
+        bignore = []
+        for ignore in pignore:
+            tignore = token_dict[ignore]
+            bignore.append("%{0:04x}%".format(tignore))
     with con:
         query = gen_search_query(bignore, file_mode)
         for word in search:
