@@ -2,6 +2,8 @@
 Finja
 =====
 
+WARNING: This is a very nice hack, but it is still a hack.
+
 Index and find your stuff:
 
 .. code:: bash
@@ -18,6 +20,12 @@ Find huhu in the index.
 
 .. code:: bash
 
+   finja -u huhu
+
+Update outdated files and find huhu in the index.
+
+.. code:: bash
+
    finja --index
    cd submdir
    find huhu
@@ -29,12 +37,5 @@ Tipp: If you are sure that your system survives till everything is indexed use:
 .. code:: bash
 
    eatmydata finja -i
-
-if it is a extremly large project you can index incrementally
-
-.. code:: bash
-
-   rm FINJA; finja -i -b 1; while eatmydata finja -u -b 10000 a; do echo inc; done;
-
 
 By dv@winged.ch and ganwell@fangorn.ch
