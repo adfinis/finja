@@ -171,7 +171,7 @@ def get_db(create=False):
                     path BLOB,
                     md5 BLOB,
                     inode INTEGER,
-                    found INTEGER DEFAULT 1,
+                    found INTEGER DEFAULT 1
                 );
         """)
         connection.execute("""
