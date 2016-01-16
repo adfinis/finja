@@ -514,13 +514,14 @@ def main(argv=None):
         index()
     if not args.pignore:
         args.pignore = []
-    if args.search:
-        search(
-            args.search,
-            args.pignore,
-            file_mode=args.file_mode,
-            update=args.update
-        )
+    if not args.search:
+        args.search = []
+    search(
+        args.search,
+        args.pignore,
+        file_mode=args.file_mode,
+        update=args.update
+    )
     if not _index_count:
         get_db()[0].close()
         sys.exit(1)
