@@ -1,3 +1,4 @@
+# coding=UTF-8
 """A lexical analyzer class for simple shell-like syntaxes."""
 
 # Module and documentation by Eric S. Raymond, 21 Dec 1998
@@ -290,7 +291,7 @@ def split(s, comments=False, posix=True):
     return list(lex)
 
 
-_find_unsafe = re.compile(r'[^\w@%+=:,./-]', re.ASCII).search
+_find_unsafe = re.compile(r'[^\w@%+=:,./-]').search
 
 def quote(s):
     """Return a shell-escaped version of the string *s*."""
