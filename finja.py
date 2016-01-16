@@ -147,9 +147,6 @@ def apply_shlex_settings(pass_, ext, lex):
 def index_file(db, file_path, update = False):
     con        = db[0]
     token_dict = db[1]
-    if len(token_dict) > _cache_size:
-        print("Clear cache")
-        token_dict.clear()
     mode       = os.stat(file_path)
     inode      = mode[stat.ST_INO]
     old_inode  = None
@@ -179,6 +176,7 @@ def index_file(db, file_path, update = False):
                 """, (file_path, inode))
                 file_ = cur.lastrowid
         inserts = []
+        insert_count = 0
         if is_binary(file_path):
             if not update:
                 print("%s: is binary, skipping" % (file_path,))
@@ -186,6 +184,11 @@ def index_file(db, file_path, update = False):
             pass_ = 0
             with open(file_path, "r") as f:
                 while pass_ <= 2:
+                    if insert_count % 1024 == 0:
+                        if len(token_dict) > _cache_size:
+                            print("Clear cache")
+                            token_dict.clear()
+                    insert_count += 1
                     try:
                         f.seek(0)
                         lex = shlex.shlex(f, file_path)
