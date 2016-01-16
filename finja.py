@@ -291,7 +291,7 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
-                            if insert_count % 10241 == 0:
+                            if insert_count % 10240 == 0:
                                 # compress inserts
                                 inserts = list(set(inserts))
                                 # clear cache
