@@ -19,6 +19,9 @@ else:
     def blob(x):
         return x
 
+_cache_size = 256 * 1024 * 1024 / 16
+# 256mb / 16 bytes max token size
+
 _db_cache = None
 
 _shlex_settings = {
@@ -145,7 +148,7 @@ def apply_shlex_settings(pass_, ext, lex):
 def index_file(db, file_path, update = False):
     con        = db[0]
     token_dict = db[1]
-    if len(token_dict) > 10240:
+    if len(token_dict) > _cache_size:
         print("Clear cache")
         token_dict.clear()
     mode       = os.stat(file_path)
