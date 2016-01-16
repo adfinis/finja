@@ -169,12 +169,19 @@ def get_db(create=False):
                 file(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     path BLOB,
+                    md5 BLOB,
                     inode INTEGER,
-                    found INTEGER DEFAULT 1
+                    found INTEGER DEFAULT 1,
                 );
         """)
         connection.execute("""
+            CREATE INDEX file_md5_idx ON file (md5);
+        """)
+        connection.execute("""
             CREATE INDEX file_path_idx ON file (path);
+        """)
+        connection.execute("""
+            CREATE INDEX file_found_idx ON file (found);
         """)
     connection.commit()
     _db_cache = (
@@ -225,6 +232,14 @@ def apply_shlex_settings(pass_, ext, lex):
             setattr(lex, key, settings[key])
 
 
+def md5(fname):
+    hash = hashlib.md5()
+    with open(fname, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            hash.update(chunk)
+    return hash.digest()
+
+
 def index_file(db, file_path, update = False):
     global _index_count
     con        = db[0]
@@ -236,7 +251,7 @@ def index_file(db, file_path, update = False):
         print("%s: not found, skipping" % (file_path,))
         return
     if not stat.S_ISREG(stat_res[stat.ST_MODE]):
-        print("%s: not a file, skipping" % (file_path,))
+        print("%s: not a plain file, skipping" % (file_path,))
         return
     inode      = stat_res[stat.ST_INO]
     old_inode  = None
@@ -256,16 +271,40 @@ def index_file(db, file_path, update = False):
             file_     = res[0][0]
             old_inode = res[0][1]
     if old_inode != inode:
+        md5sum = md5(file_path)
         with con:
+            res = con.execute("""
+                SELECT
+                    count(*)
+                FROM
+                    file
+                WHERE
+                    md5=?;
+            """, (md5sum,)).fetchall()
+            duplicated = res[0][0] > 0
             if file_ is None:
                 cur = con.cursor()
                 cur.execute("""
                     INSERT INTO
-                        file(path, inode)
+                        file(path, md5, inode)
                     VALUES
-                        (?, ?);
-                """, (cfile_path, inode))
+                        (?, ?, ?, ?);
+                """, (cfile_path, md5sum, inode))
                 file_ = cur.lastrowid
+            else:
+                con.execute("""
+                    UPDATE
+                        file
+                    SET
+                        md5 = ?,
+                        inode = ?,
+                        found = 1,
+                    WHERE
+                        id = ?
+                """, (md5sum, inode, file_))
+            if duplicated:
+                print("%s: duplicated, skipping" % (file_path,))
+                return
         inserts = []
         insert_count = 0
         if is_binary(file_path):
@@ -343,11 +382,10 @@ def index_file(db, file_path, update = False):
                 UPDATE
                     file
                 SET
-                    inode = ?,
                     found = 1
                 WHERE
-                    id = ?
-            """, (inode, file_))
+                    path = ?
+            """, (cfile_path,))
 
 
 def index():
