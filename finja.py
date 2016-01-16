@@ -213,6 +213,9 @@ def index_file(db, file_path, update = False):
                         t = lex.get_token()
                         while t:
                             if insert_count % 1024 == 0:
+                                # compress inserts
+                                inserts = list(set(inserts))
+                                # clear cache
                                 if len(token_dict) > _cache_size:
                                     print("Clear cache")
                                     token_dict.clear()
@@ -228,13 +231,13 @@ def index_file(db, file_path, update = False):
                         if pass_ >= 2:
                             raise
                     pass_ += 1
-            all_inserts    = len(inserts)
             inserts        = list(set(inserts))
             unique_inserts = len(inserts)
-            print("%s: indexed %s/%s" % (
+            print("%s: indexed %s/%s (%.3f)" % (
                 file_path,
-                all_inserts,
-                unique_inserts
+                unique_inserts,
+                insert_count,
+                float(unique_inserts) / (insert_count + 0.0000000001)
             ))
         with con:
             con.execute("""
