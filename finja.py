@@ -1,4 +1,5 @@
 import argparse
+import array
 import codecs
 import hashlib
 import math
@@ -6,10 +7,6 @@ import os
 import sqlite3
 import stat
 import sys
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 import six
 from binaryornot.check import is_binary
@@ -137,6 +134,8 @@ def get_db(create=False):
     if not (create or exists):
         raise ValueError("Could not find FINJA")
     connection = sqlite3.connect("FINJA")  # noqa
+    if six.PY2:
+        connection.text_factory = str
     if not exists:
         connection.execute("""
             CREATE TABLE
@@ -187,13 +186,21 @@ def get_db(create=False):
 def path_compress(path, db):
     token_dict = db[1]
     path_arr = path.split(os.sep)
-    path_ids = [token_dict[x] for x in path_arr]
-    return pickle.dumps(path_ids)
+    path_ids = array.array('I')
+    path_ids.extend([token_dict[x] for x in path_arr])
+    if six.PY2:
+        return path_ids.tostring()
+    else:
+        return path_ids.tobytes()
 
 
 def path_decompress(path, db):
     string_dict = db[2]
-    path_arr = pickle.loads(binstr(path))
+    path_arr = array.array('I')
+    if six.PY2:
+        path_arr.fromstring(path)
+    else:
+        path_arr.frombytes(path)
     path_strs = [string_dict[x] for x in path_arr]
     return os.sep.join(path_strs)
 
@@ -417,7 +424,7 @@ def gen_search_query(pignore, file_mode):
         """
     ignore_list = []
     for ignore in pignore:
-        ignore_list.append("AND f.path NOT LIKE ?")
+        ignore_list.append("AND hex(f.path) NOT LIKE ?")
     return base.format(
         projection = projection,
         ignore = "\n".join(ignore_list)
@@ -440,12 +447,16 @@ def search(
     if not search:
         return
     res = []
+    bignore = []
+    for ignore in pignore:
+        tignore = token_dict[ignore]
+        bignore.append("%{0:04x}%".format(tignore))
     with con:
-        query = gen_search_query(pignore, file_mode)
+        query = gen_search_query(bignore, file_mode)
         for word in search:
             word = cleanup(word)
             args = [token_dict[word]]
-            args.extend(["%%%s%%" % x for x in pignore])
+            args.extend(bignore)
             res.append(set(con.execute(query, args).fetchall()))
     res_set = res.pop()
     for search_set in res:
@@ -557,7 +568,7 @@ def main(argv=None):
     parser.add_argument(
         '--pignore',
         '-p',
-        help='Ignore path that contain one of the strings. Can be repeated',
+        help='Ignore path that contain one of the elements. Can be repeated',
         nargs='?',
         action='append'
     )
