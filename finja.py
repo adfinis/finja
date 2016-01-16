@@ -44,6 +44,8 @@ _ignore_dir = set([
 
 _args = None
 
+_index_count = 0
+
 
 class TokenDict(dict):
     def __init__(self, db, *args, **kwargs):
@@ -158,6 +160,7 @@ def apply_shlex_settings(pass_, ext, lex):
 
 
 def index_file(db, file_path, update = False):
+    global _index_count
     con        = db[0]
     token_dict = db[1]
     # Bad symlinks etc.
@@ -186,6 +189,11 @@ def index_file(db, file_path, update = False):
             file_     = res[0][0]
             old_inode = res[0][1]
     if old_inode != inode:
+        if _args.batch > 0:
+            _index_count += 1  # noqa
+            if _index_count > _args.batch:
+                con.close()
+                sys.exit(0)
         with con:
             if file_ is None:
                 cur = con.cursor()
@@ -216,7 +224,7 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
-                            if insert_count % 10240 == 0:
+                            if insert_count % 10241 == 0:
                                 # compress inserts
                                 inserts = list(set(inserts))
                                 # clear cache
@@ -479,6 +487,13 @@ def main(argv=None):
         '-r',
         help='Raw output to parse with outer tools',
         action='store_true',
+    )
+    parser.add_argument(
+        '--batch',
+        '-b',
+        help='Only read N files and then stop. Default 0 (disabled)',
+        default=0,
+        type=int
     )
     parser.add_argument(
         '--pignore',
