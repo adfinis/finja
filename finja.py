@@ -522,6 +522,6 @@ def main(argv=None):
         file_mode=args.file_mode,
         update=args.update
     )
-    if not _index_count:
+    if not _index_count and not args.search:
         get_db()[0].close()
         sys.exit(1)

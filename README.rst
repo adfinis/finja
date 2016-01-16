@@ -30,5 +30,11 @@ Tipp: If you are sure that your system survives till everything is indexed use:
 
    eatmydata finja -i
 
+if it is a extremly large project you can index incrementally
+
+.. code:: bash
+
+   rm FINJA; finja -i -b 1; while eatmydata finja -u -b 10000 a; do echo inc; done;
+
 
 By dv@winged.ch and ganwell@fangorn.ch
