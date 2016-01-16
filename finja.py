@@ -308,8 +308,41 @@ def find_finja():
     raise ValueError("Could not find FINJA")
 
 
+def gen_search_query(pignore, file_mode):
+    base = """
+        SELECT DISTINCT
+            {projection}
+        FROM
+            finja as i
+        JOIN
+            file as f
+        ON
+            i.file_id = f.id
+        WHERE
+            token_id=?
+        {ignore}
+    """
+    if file_mode:
+        projection = """
+            f.path,
+        """
+    else:
+        projection = """
+            f.path,
+            i.line
+        """
+    ignore_list = []
+    for ignore in pignore:
+        ignore_list.append("AND f.path NOT LIKE ?")
+    return base.format(
+        projection = projection,
+        ignore = "\n".join(ignore_list)
+    )
+
+
 def search(
         search,
+        pignore,
         file_mode=False,
         update=False,
 ):
@@ -322,39 +355,12 @@ def search(
         do_index(db, update=True)
     res = []
     with con:
-        if file_mode:
-            for word in search:
-                word = cleanup(word)
-                token = token_dict[word]
-                res.append(set(con.execute("""
-                    SELECT DISTINCT
-                        f.path
-                    FROM
-                        finja as i
-                    JOIN
-                        file as f
-                    ON
-                        i.file_id = f.id
-                    WHERE
-                        token_id=?
-                """, (token,)).fetchall()))
-        else:
-            for word in search:
-                word = cleanup(word)
-                token = token_dict[word]
-                res.append(set(con.execute("""
-                    SELECT DISTINCT
-                        f.path,
-                        i.line
-                    FROM
-                        finja as i
-                    JOIN
-                        file as f
-                    ON
-                        i.file_id = f.id
-                    WHERE
-                        token_id=?
-                """, (token,)).fetchall()))
+        query = gen_search_query(pignore, file_mode)
+        for word in search:
+            word = cleanup(word)
+            args = [token_dict[word]]
+            args.extend(["%%%s%%" % x for x in pignore])
+            res.append(set(con.execute(query, args).fetchall()))
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)
@@ -455,6 +461,13 @@ def main(argv=None):
         action='store_true',
     )
     parser.add_argument(
+        '--pignore',
+        '-p',
+        help='Ignore path that contain one of the strings. Can be repeated',
+        nargs='?',
+        action='append'
+    )
+    parser.add_argument(
         'search',
         help='search string',
         type=str,
@@ -464,9 +477,12 @@ def main(argv=None):
     _args = args  # noqa
     if args.index:
         index()
+    if not args.pignore:
+        args.pignore = []
     if args.search:
         search(
             args.search,
+            args.pignore,
             file_mode=args.file_mode,
             update=args.update
         )
