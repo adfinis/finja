@@ -145,7 +145,7 @@ def apply_shlex_settings(pass_, ext, lex):
 def index_file(db, file_path, update = False):
     con        = db[0]
     token_dict = db[1]
-    if len(token_dict) > 1024:
+    if len(token_dict) > 10240:
         print("Clear cache")
         token_dict.clear()
     mode       = os.stat(file_path)
