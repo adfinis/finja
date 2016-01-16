@@ -300,7 +300,7 @@ def index_file(db, file_path, update = False):
                     SET
                         md5 = ?,
                         inode = ?,
-                        found = 1,
+                        found = 1
                     WHERE
                         id = ?
                 """, (md5sum, inode, file_))
@@ -464,10 +464,12 @@ def gen_search_query(pignore, file_mode):
     if file_mode:
         projection = """
             f.path,
+            f.id
         """
     else:
         projection = """
             f.path,
+            f.id,
             i.line
         """
     ignore_list = []
@@ -481,6 +483,31 @@ def gen_search_query(pignore, file_mode):
         projection = projection,
         ignore = "\n".join(ignore_list)
     )
+
+
+def display_duplicates(db, file_):
+    if _args.raw:
+        return
+    con = db[0]
+    with con:
+        res = con.execute("""
+            SELECT
+                f.path
+            FROM
+                file as f
+            JOIN
+                file as ff
+            ON
+                ff.md5 = f.md5
+            WHERE
+                ff.id = ?
+                AND
+                f.id != ?
+        """, (file_, file_)).fetchall()
+        if res:
+            print("duplicates:")
+            for cfile_path in res:
+                print("\t%s" % path_decompress(cfile_path[0], db))
 
 
 def search(
@@ -525,16 +552,23 @@ def search(
     if file_mode:
         for match in sorted(
                 res_set,
+                key=lambda x: x[0],
                 reverse=True
         ):
-            print(match[0])
+            path = path_decompress(match[0], db)
+            print(path)
     else:
         dirname = None
+        old_file = -1
         for match in sorted(
                 res_set,
-                key=lambda x: (x[0], -x[1]),
+                key=lambda x: (x[0], -x[2]),
                 reverse=True
         ):
+            file_ = match[1]
+            if file_ != old_file and old_file != -1:
+                display_duplicates(db, old_file)
+            old_file = file_
             path = path_decompress(match[0], db)
             file_path = path
             if not _args.raw:
@@ -551,8 +585,8 @@ def search(
             if context == 1:
                 print("%s:%5d:%s" % (
                     file_name,
-                    match[1],
-                    get_line(file_path, match[1])[:-1]
+                    match[2],
+                    get_line(file_path, match[2])[:-1]
                 ))
             else:
                 offset = int(math.floor(context / 2))
@@ -560,7 +594,7 @@ def search(
                 for x in range(context):
                     x -= offset
                     context_list.append(
-                        get_line(match[0], match[1] + x)
+                        get_line(match[0], match[2] + x)
                     )
                 strip_list = []
                 inside = False
@@ -577,9 +611,10 @@ def search(
                 context = "|".join(context_list)
                 print("%s:%5d\n|%s" % (
                     file_name,
-                    match[1],
+                    match[2],
                     context
                 ))
+        display_duplicates(db, old_file)
 
 
 def main(argv=None):
