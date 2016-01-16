@@ -1,6 +1,6 @@
 import argparse
+import codecs
 import hashlib
-import linecache
 import math
 import os
 import sqlite3
@@ -79,6 +79,19 @@ def cleanup(string):
     if len(string) <= 16:
         return string.lower()
     return hashlib.md5(string.lower().encode("UTF-8")).digest()
+
+
+def get_line(file_path, lineno):
+    line = "!! Bad encoding"
+    try:
+        with codecs.open(file_path, "r", encoding="UTF-8") as f:
+            for _ in range(lineno):
+                line = f.readline()
+    except UnicodeDecodeError:
+        pass
+    except IOError:
+        line = "!! File not found"
+    return line
 
 
 def get_db(create=False):
@@ -393,7 +406,7 @@ def search(
                 print("%s:%5d:%s" % (
                     file_name,
                     match[1],
-                    linecache.getline(match[0], match[1])[:-1]
+                    get_line(match[0], match[1])[:-1]
                 ))
             else:
                 offset = int(math.floor(context / 2))
@@ -401,7 +414,7 @@ def search(
                 for x in range(context):
                     x -= offset
                     context_list.append(
-                        linecache.getline(match[0], match[1] + x)
+                        get_line(match[0], match[1] + x)
                     )
                 strip_list = []
                 inside = False
