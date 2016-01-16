@@ -184,11 +184,6 @@ def index_file(db, file_path, update = False):
             pass_ = 0
             with open(file_path, "r") as f:
                 while pass_ <= 2:
-                    if insert_count % 1024 == 0:
-                        if len(token_dict) > _cache_size:
-                            print("Clear cache")
-                            token_dict.clear()
-                    insert_count += 1
                     try:
                         f.seek(0)
                         lex = shlex.shlex(f, file_path)
@@ -200,6 +195,11 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
+                            if insert_count % 1024 == 0:
+                                if len(token_dict) > _cache_size:
+                                    print("Clear cache")
+                                    token_dict.clear()
+                            insert_count += 1
                             word = cleanup(t)
                             inserts.append((
                                 token_dict[word],
