@@ -6,6 +6,10 @@ import os
 import sqlite3
 import stat
 import sys
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 import six
 from binaryornot.check import is_binary
@@ -15,11 +19,17 @@ import finja_shlex as shlex
 if six.PY2:
     def blob(x):
         return sqlite3.Binary(x)
+
+    def binstr(x):
+        return str(x)
 else:
     def blob(x):
         return x
 
-_cache_size = 1024 * 1024
+    def binstr(x):
+        return x
+
+_cache_size = 1024 * 1024 / 2
 
 _db_cache = None
 
@@ -77,6 +87,29 @@ class TokenDict(dict):
         return ret
 
 
+class StringDict(dict):
+    def __init__(self, db, *args, **kwargs):
+        super(StringDict, self).__init__(*args, **kwargs)
+        self.db = db
+
+    def __missing__(self, key):
+        with self.db:
+            cur = self.db.cursor()
+            res = cur.execute("""
+                SELECT
+                    string
+                FROM
+                    token
+                WHERE
+                    id = ?;
+            """, (key,)).fetchall()
+        if not res:
+            raise KeyError("Token not found")
+        ret = binstr(res[0][0])
+        self[key] = ret
+        return ret
+
+
 def cleanup(string):
     if len(string) <= 16:
         return string.lower()
@@ -84,7 +117,7 @@ def cleanup(string):
 
 
 def get_line(file_path, lineno):
-    line = "!! Bad encoding"
+    line = "!! Bad encoding "
     try:
         with codecs.open(file_path, "r", encoding="UTF-8") as f:
             for _ in range(lineno):
@@ -92,7 +125,7 @@ def get_line(file_path, lineno):
     except UnicodeDecodeError:
         pass
     except IOError:
-        line = "!! File not found"
+        line = "!! File not found "
     return line
 
 
@@ -134,7 +167,7 @@ def get_db(create=False):
             CREATE TABLE
                 file(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    path TEXT,
+                    path BLOB,
                     inode INTEGER,
                     found INTEGER DEFAULT 1
                 );
@@ -143,8 +176,26 @@ def get_db(create=False):
             CREATE INDEX file_path_idx ON file (path);
         """)
     connection.commit()
-    _db_cache = (connection, TokenDict(connection))
+    _db_cache = (
+        connection,
+        TokenDict(connection),
+        StringDict(connection)
+    )
     return _db_cache
+
+
+def path_compress(path, db):
+    token_dict = db[1]
+    path_arr = path.split(os.sep)
+    path_ids = [token_dict[x] for x in path_arr]
+    return pickle.dumps(path_ids)
+
+
+def path_decompress(path, db):
+    string_dict = db[2]
+    path_arr = pickle.loads(binstr(path))
+    path_strs = [string_dict[x] for x in path_arr]
+    return os.sep.join(path_strs)
 
 
 def apply_shlex_settings(pass_, ext, lex):
@@ -175,6 +226,7 @@ def index_file(db, file_path, update = False):
         return
     old_inode  = None
     file_      = None
+    cfile_path = path_compress(file_path, db)
     with con:
         res = con.execute("""
             SELECT
@@ -184,7 +236,7 @@ def index_file(db, file_path, update = False):
                 file
             WHERE
                 path=?;
-        """, (file_path,)).fetchall()
+        """, (cfile_path,)).fetchall()
         if res:
             file_     = res[0][0]
             old_inode = res[0][1]
@@ -197,7 +249,7 @@ def index_file(db, file_path, update = False):
                         file(path, inode)
                     VALUES
                         (?, ?);
-                """, (file_path, inode))
+                """, (cfile_path, inode))
                 file_ = cur.lastrowid
         inserts = []
         insert_count = 0
@@ -229,8 +281,12 @@ def index_file(db, file_path, update = False):
                                 inserts = list(set(inserts))
                                 # clear cache
                                 if len(token_dict) > _cache_size:
-                                    print("Clear cache")
+                                    print("Clear token cache")
                                     token_dict.clear()
+                                string_dict = db[2]
+                                if len(string_dict) > _cache_size:
+                                    print("Clear string cache")
+                                    string_dict.clear()
                             insert_count += 1
                             word = cleanup(t)
                             inserts.append((
@@ -407,7 +463,8 @@ def search(
                 key=lambda x: (x[0], -x[1]),
                 reverse=True
         ):
-            path = match[0]
+            path = path_decompress(match[0], db)
+            file_path = path
             if not _args.raw:
                 new_dirname = os.path.dirname(path)
                 if dirname != new_dirname:
@@ -423,7 +480,7 @@ def search(
                 print("%s:%5d:%s" % (
                     file_name,
                     match[1],
-                    get_line(match[0], match[1])[:-1]
+                    get_line(file_path, match[1])[:-1]
                 ))
             else:
                 offset = int(math.floor(context / 2))
