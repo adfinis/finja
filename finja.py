@@ -189,11 +189,6 @@ def index_file(db, file_path, update = False):
             file_     = res[0][0]
             old_inode = res[0][1]
     if old_inode != inode:
-        if _args.batch > 0:
-            _index_count += 1  # noqa
-            if _index_count > _args.batch:
-                con.close()
-                sys.exit(0)
         with con:
             if file_ is None:
                 cur = con.cursor()
@@ -210,6 +205,11 @@ def index_file(db, file_path, update = False):
             if not update:
                 print("%s: is binary, skipping" % (file_path,))
         else:
+            if _args.batch > 0:
+                _index_count += 1  # noqa
+                if _index_count > _args.batch:
+                    con.close()
+                    sys.exit(0)
             pass_ = 0
             with open(file_path, "r") as f:
                 while pass_ <= 2:
@@ -521,3 +521,6 @@ def main(argv=None):
             file_mode=args.file_mode,
             update=args.update
         )
+    if not _index_count:
+        get_db()[0].close()
+        sys.exit(1)
