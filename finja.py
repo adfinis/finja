@@ -162,10 +162,14 @@ def index_file(db, file_path, update = False):
     token_dict = db[1]
     # Bad symlinks etc.
     try:
-        mode       = os.stat(file_path)
+        stat_res = os.stat(file_path)
     except OSError:
+        print("%s: not found, skipping" % (file_path,))
         return
-    inode      = mode[stat.ST_INO]
+    inode      = stat_res[stat.ST_INO]
+    if not stat.S_ISREG(stat_res[stat.ST_MODE]):
+        print("%s: not a file, skipping" % (file_path,))
+        return
     old_inode  = None
     file_      = None
     with con:
