@@ -15,6 +15,10 @@ from binaryornot.check import is_binary
 
 import finja_shlex as shlex
 
+# TODO: How to solve problem (in raw) that file can contain colons ":"?
+# TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
+# output
+
 if six.PY2:
     def blob(x):
         return sqlite3.Binary(x)
