@@ -19,8 +19,7 @@ else:
     def blob(x):
         return x
 
-# 100mb / 16 bytes max token size
-_cache_size = 100 * 1024 * 1024 / 16
+_cache_size = 1024 * 1024
 
 _db_cache = None
 
