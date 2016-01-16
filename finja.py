@@ -400,6 +400,11 @@ def index():
 
 
 def do_index(db, update=False):
+    do_index_pass(db, update)
+    do_index_pass(db, update)
+
+
+def do_index_pass(db, update=False):
     con = db[0]
     with con:
         con.execute("""
@@ -434,7 +439,18 @@ def do_index(db, update=False):
             DELETE FROM
                 file
             WHERE
-                found = 0
+                id IN (
+                    SELECT
+                        f.id
+                    FROM
+                        file as f
+                    JOIN
+                        file as ff
+                    ON
+                        f.md5 = ff.md5
+                    WHERE
+                        ff.found = 0
+                )
             """)
         con.execute("VACUUM;")
 
