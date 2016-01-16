@@ -183,26 +183,32 @@ def get_db(create=False):
     return _db_cache
 
 
-def path_compress(path, db):
-    token_dict = db[1]
-    path_arr = path.split(os.sep)
-    path_ids = array.array('I')
-    path_ids.extend([token_dict[x] for x in path_arr])
-    if six.PY2:
-        return path_ids.tostring()
-    else:
-        return path_ids.tobytes()
+if sys.version_info[0] == 2 and sys.version_info[1] < 7:
+    def path_compress(path, db):
+        return path
 
+    def path_decompress(path, db):
+        return path
+else:
+    def path_compress(path, db):
+        token_dict = db[1]
+        path_arr = path.split(os.sep)
+        path_ids = array.array('I')
+        path_ids.extend([token_dict[x] for x in path_arr])
+        if six.PY2:
+            return path_ids.tostring()
+        else:
+            return path_ids.tobytes()
 
-def path_decompress(path, db):
-    string_dict = db[2]
-    path_arr = array.array('I')
-    if six.PY2:
-        path_arr.fromstring(path)
-    else:
-        path_arr.frombytes(path)
-    path_strs = [string_dict[x] for x in path_arr]
-    return os.sep.join(path_strs)
+    def path_decompress(path, db):
+        string_dict = db[2]
+        path_arr = array.array('I')
+        if six.PY2:
+            path_arr.fromstring(path)
+        else:
+            path_arr.frombytes(path)
+        path_strs = [string_dict[x] for x in path_arr]
+        return os.sep.join(path_strs)
 
 
 def apply_shlex_settings(pass_, ext, lex):
