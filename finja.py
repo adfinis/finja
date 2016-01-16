@@ -148,8 +148,10 @@ def index_file(db, file_path, update = False):
     token_dict = db[1]
     usage      = float(resource.getrusage(
         resource.RUSAGE_SELF
-    ).ru_maxrss) / 1024.0 / 1024.0
-    if usage > 100.0:
+    ).ru_maxrss) / 1024.0
+    if sys.platform == 'darwin':
+        usage /= 1024.0
+    if usage > 200.0:
         print("Clear cache")
         token_dict.clear()
     mode       = os.stat(file_path)
