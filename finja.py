@@ -580,6 +580,11 @@ def search(
     else:
         dirname = None
         old_file = -1
+        res_set = [(
+            path_decompress(x[0], db),
+            x[1],
+            x[2],
+        ) for x in res_set]
         for match in sorted(
                 res_set,
                 key=lambda x: (x[0], -x[2]),
@@ -589,8 +594,7 @@ def search(
             if file_ != old_file and old_file != -1:
                 display_duplicates(db, old_file)
             old_file = file_
-            path = path_decompress(match[0], db)
-            file_path = path
+            path = match[0]
             if not _args.raw:
                 new_dirname = os.path.dirname(path)
                 if dirname != new_dirname:
@@ -599,14 +603,12 @@ def search(
                 file_name = os.path.basename(path)
             else:
                 file_name = path
-            if path.startswith("./"):
-                path = path[2:]
             context = _args.context
             if context == 1:
                 print("%s:%5d:%s" % (
                     file_name,
                     match[2],
-                    get_line(file_path, match[2])[:-1]
+                    get_line(path, match[2])[:-1]
                 ))
             else:
                 offset = int(math.floor(context / 2))
@@ -614,7 +616,7 @@ def search(
                 for x in range(context):
                     x -= offset
                     context_list.append(
-                        get_line(match[0], match[2] + x)
+                        get_line(path, match[2] + x)
                     )
                 strip_list = []
                 inside = False
