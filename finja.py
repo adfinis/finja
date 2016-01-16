@@ -1,11 +1,13 @@
 import argparse
 import array
+import binascii
 import codecs
 import hashlib
 import math
 import os
 import sqlite3
 import stat
+import struct
 import sys
 
 import six
@@ -505,7 +507,11 @@ def search(
         bignore = []
         for ignore in pignore:
             tignore = token_dict[ignore]
-            bignore.append("%{0:04x}%".format(tignore))
+            bignore.append(
+                "%{0}%".format(
+                    binascii.b2a_hex(struct.pack('I', tignore)).upper()
+                )
+            )
     with con:
         query = gen_search_query(bignore, file_mode)
         for word in search:
