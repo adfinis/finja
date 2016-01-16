@@ -147,7 +147,11 @@ def apply_shlex_settings(pass_, ext, lex):
 def index_file(db, file_path, update = False):
     con        = db[0]
     token_dict = db[1]
-    mode       = os.stat(file_path)
+    # Bad symlinks etc.
+    try:
+        mode       = os.stat(file_path)
+    except OSError:
+        return
     inode      = mode[stat.ST_INO]
     old_inode  = None
     file_      = None
@@ -330,12 +334,10 @@ def search(
                     JOIN
                         file as f
                     ON
-                       i.file_id = f.id
+                        i.file_id = f.id
                     WHERE
                         token_id=?
-                    LIMIT
-                        ?
-                """, (token, _args.limit)).fetchall()))
+                """, (token,)).fetchall()))
         else:
             for word in search:
                 word = cleanup(word)
@@ -349,12 +351,10 @@ def search(
                     JOIN
                         file as f
                     ON
-                       i.file_id = f.id
+                        i.file_id = f.id
                     WHERE
                         token_id=?
-                    LIMIT
-                        ?
-                """, (token, _args.limit)).fetchall()))
+                """, (token,)).fetchall()))
     res_set = res.pop()
     for search_set in res:
         res_set.intersection_update(search_set)
@@ -446,13 +446,6 @@ def main(argv=None):
         '-c',
         help='Lines of context. Default: 1',
         default=1,
-        type=int
-    )
-    parser.add_argument(
-        '--limit',
-        '-l',
-        help='Limit the output. Default: 40',
-        default=40,
         type=int
     )
     parser.add_argument(
