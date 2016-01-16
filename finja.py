@@ -235,10 +235,10 @@ def index_file(db, file_path, update = False):
     except OSError:
         print("%s: not found, skipping" % (file_path,))
         return
-    inode      = stat_res[stat.ST_INO]
     if not stat.S_ISREG(stat_res[stat.ST_MODE]):
         print("%s: not a file, skipping" % (file_path,))
         return
+    inode      = stat_res[stat.ST_INO]
     old_inode  = None
     file_      = None
     cfile_path = path_compress(file_path, db)
