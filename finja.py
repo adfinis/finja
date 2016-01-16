@@ -368,31 +368,38 @@ def search(
             path = match[0]
             if path.startswith("./"):
                 path = path[2:]
-            offset = math.floor(_context / 2)
-            context_list = []
-            for x in range(_context):
-                x -= offset
-                context_list.append(
-                    linecache.getline(match[0], match[1] + x)
-                )
-            strip_list = []
-            inside = False
-            for line in reversed(context_list):
-                if line.strip() or inside:
-                    inside = True
-                    strip_list.append(line)
-            context_list = []
-            inside = False
-            for line in reversed(strip_list):
-                if line.strip() or inside:
-                    inside = True
-                    context_list.append(line)
-            context = "|".join(context_list)
-            print("%s:%5d\n|%s" % (
-                path,
-                match[1],
-                context
-            ))
+            if _context == 1:
+                print("%s:%5d:%s" % (
+                    path,
+                    match[1],
+                    linecache.getline(match[0], match[1])[:-1]
+                ))
+            else:
+                offset = math.floor(_context / 2)
+                context_list = []
+                for x in range(_context):
+                    x -= offset
+                    context_list.append(
+                        linecache.getline(match[0], match[1] + x)
+                    )
+                strip_list = []
+                inside = False
+                for line in reversed(context_list):
+                    if line.strip() or inside:
+                        inside = True
+                        strip_list.append(line)
+                context_list = []
+                inside = False
+                for line in reversed(strip_list):
+                    if line.strip() or inside:
+                        inside = True
+                        context_list.append(line)
+                context = "|".join(context_list)
+                print("%s:%5d\n|%s" % (
+                    path,
+                    match[1],
+                    context
+                ))
 
 
 def main(argv=None):
