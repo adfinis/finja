@@ -288,7 +288,7 @@ def index_file(db, file_path, update = False):
                     INSERT INTO
                         file(path, md5, inode)
                     VALUES
-                        (?, ?, ?, ?);
+                        (?, ?, ?);
                 """, (cfile_path, md5sum, inode))
                 file_ = cur.lastrowid
             else:
