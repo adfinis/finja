@@ -381,6 +381,8 @@ def search(
     token_dict = db[1]
     if update:
         do_index(db, update=True)
+    if not search:
+        return
     res = []
     with con:
         query = gen_search_query(pignore, file_mode)
