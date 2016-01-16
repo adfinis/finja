@@ -4,13 +4,14 @@ import linecache
 import math
 import os
 import resource
-import shlex
 import sqlite3
 import stat
 import sys
 
 import six
 from binaryornot.check import is_binary
+
+import finja_shlex as shlex
 
 if six.PY2:
     def blob(x):
@@ -23,6 +24,7 @@ _db_cache = None
 
 _shlex_settings = {
     '.default': {
+        'commenters': ""
     },
     '.override0': {
     },
@@ -39,7 +41,7 @@ _ignore_dir = set([
     ".svn"
 ])
 
-_context = 3
+_context = 1
 
 
 class TokenDict(dict):
@@ -147,7 +149,7 @@ def index_file(db, file_path, update = False):
     usage      = float(resource.getrusage(
         resource.RUSAGE_SELF
     ).ru_maxrss) / 1024.0 / 1024.0
-    if usage > 512.0:
+    if usage > 100.0:
         print("Clear cache")
         token_dict.clear()
     mode       = os.stat(file_path)
@@ -420,8 +422,8 @@ def main(argv=None):
     parser.add_argument(
         '--context',
         '-c',
-        help='Lines of context. Default 3',
-        default='3'
+        help='Lines of context. Default 1',
+        default='1'
     )
     parser.add_argument(
         'search',
