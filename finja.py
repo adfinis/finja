@@ -651,7 +651,7 @@ def main(argv=None):
     parser.add_argument(
         '--raw',
         '-r',
-        help='Raw output to parse with outer tools',
+        help="Raw output to parse with tools (doesn't display duplicates",
         action='store_true',
     )
     parser.add_argument(
