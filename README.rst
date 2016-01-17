@@ -4,7 +4,7 @@ Finja
 
 An awesome hack.
 
-Index and find your stuff:
+Index and find your stuff.
 
 Indexes the current directory.
 
@@ -32,7 +32,7 @@ Also works from a subdirectory.
    cd submdir
    find huhu
 
-Tipp: If you are sure that your system survives till everything is indexed use:
+Tipp: If you are sure that your system survives till everything is indexed use.
 
 .. code:: bash
 
