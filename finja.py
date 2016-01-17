@@ -399,6 +399,7 @@ def index_file(db, file_path, update = False):
 def index():
     db = get_db(create=True)
     do_index(db)
+    print("Indexing done")
 
 
 def do_index(db, update=False):
