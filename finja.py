@@ -73,8 +73,8 @@ if _python_26:
 else:
     def path_compress(path, db):
         token_dict = db[1]
-        path_arr = path.split(os.sep)
-        path_ids = array.array('I')
+        path_arr   = path.split(os.sep)
+        path_ids   = array.array('I')
         path_ids.extend([token_dict[x] for x in path_arr])
         if six.PY2:
             return path_ids.tostring()
@@ -83,7 +83,7 @@ else:
 
     def path_decompress(path, db):
         string_dict = db[2]
-        path_arr = array.array('I')
+        path_arr    = array.array('I')
         if six.PY2:
             path_arr.fromstring(path)
         else:
@@ -185,10 +185,11 @@ _delete_missing_files = """
         )
 """
 
-_find_inode = """
+_find_file = """
     SELECT
         id,
-        inode
+        inode,
+        md5
     FROM
         file
     WHERE
@@ -200,6 +201,16 @@ _check_for_duplicates = """
         count(*)
     FROM
         file
+    WHERE
+        md5=?;
+"""
+
+_clear_inode_md5_of_duplicates = """
+    UPDATE
+        file
+    SET
+        inode = null,
+        md5 = null
     WHERE
         md5=?;
 """
@@ -430,8 +441,9 @@ def index():
 
 
 def do_index(db, update=False):
+    # Reindexing duplicates that have changed is a two pass process
     do_index_pass(db, update)
-    do_index_pass(db, update)
+    do_index_pass(db, True)
 
 
 def do_index_pass(db, update=False):
@@ -469,14 +481,18 @@ def index_file(db, file_path, update = False):
         return
     inode      = stat_res[stat.ST_INO]
     old_inode  = None
+    old_md5    = None
     file_      = None
     cfile_path = path_compress(file_path, db)
     with con:
-        res = con.execute(_find_inode, (cfile_path,)).fetchall()
+        res = con.execute(_find_file, (cfile_path,)).fetchall()
         if res:
             file_     = res[0][0]
             old_inode = res[0][1]
+            old_md5   = res[0][2]
     if old_inode != inode:
+        if old_md5:
+            con.execute(_clear_inode_md5_of_duplicates, (old_md5,))
         duplicate, file_ = check_file(
             con, file_, file_path, cfile_path, inode
         )
@@ -504,7 +520,8 @@ def check_file(con, file_, file_path, cfile_path, inode):
         else:
             con.execute(_update_file_entry, (md5sum, inode, file_))
         if duplicated:
-            print("%s: duplicated, skipping" % (file_path,))
+            if not _args.update:
+                print("%s: duplicated, skipping" % (file_path,))
             return (True, file_)
     return (False, file_)
 
@@ -596,8 +613,8 @@ def search(
 ):
     finja = find_finja()
     os.chdir(finja)
-    db = get_db(create=False)
-    con = db[0]
+    db         = get_db(create = False)
+    con        = db[0]
     token_dict = db[1]
     if update:
         do_index(db, update=True)
