@@ -721,7 +721,7 @@ def sort_format_result(db, res_set):
             if context == 1 or _args.raw:
                 display_no_context(f, match, path, file_name)
             else:
-                display_duplicates(f, context, match, path, file_name)
+                display_context(f, context, match, path, file_name)
     display_duplicates(db, old_file)
 
 
@@ -735,12 +735,14 @@ def display_context(f, context, match, path, file_name):
         )
     strip_list = []
     inside = False
+    # Cleaning emtpy lines
     for line in reversed(context_list):
         if line.strip() or inside:
             inside = True
             strip_list.append(line)
     context_list = []
     inside = False
+    # Cleaning emtpy lines (other side of the list)
     for line in reversed(strip_list):
         if line.strip() or inside:
             inside = True

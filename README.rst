@@ -2,7 +2,7 @@
 Finja
 =====
 
-WARNING: This is a very nice hack, but it is still a hack.
+An awesome hack.
 
 Index and find your stuff:
 
