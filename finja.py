@@ -491,7 +491,6 @@ def do_index_pass(db, update=False):
             con.execute(_delete_missing_indexes)
             con.execute(_delete_missing_files)
             _do_second_pass = True  # noqa
-        con.execute("VACUUM;")
 
 # Indexer
 
@@ -661,6 +660,8 @@ def search(
     token_dict = db[1]
     if update:
         do_index(db, update=True)
+    if _args.vacuum:
+        con.execute("VACUUM;")
     if not search:
         return
     res = []
@@ -849,6 +850,12 @@ def main(argv=None):
         help='Ignore path that contain one of the elements. Can be repeated',
         nargs='?',
         action='append'
+    )
+    parser.add_argument(
+        '--vacuum',
+        '-v',
+        help='Rebuild the hole database to make it smaller',
+        action='store_true',
     )
     parser.add_argument(
         'search',
