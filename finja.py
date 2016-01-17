@@ -376,6 +376,16 @@ def get_db(create=False):
         connection.execute("""
             CREATE INDEX file_found_idx ON file (found);
         """)
+        connection.execute("""
+            CREATE TABLE
+                key_value(
+                    key INTEGER PRIMARY KEY,
+                    value BLOB
+                );
+        """)
+        connection.execute("""
+            CREATE INDEX key_value_key_idx ON key_value (key);
+        """)
     connection.commit()
     _db_cache = (
         connection,
