@@ -227,9 +227,9 @@ _clear_inode_md5_of_duplicates = """
 
 _create_new_file_entry = """
     INSERT INTO
-        file(path, md5, inode)
+        file(path, md5, inode, found)
     VALUES
-        (?, ?, ?);
+        (?, ?, ?, 1);
 """
 
 _update_file_entry = """
@@ -541,7 +541,7 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
         duplicated = True
         if old_md5:
             res = con.execute(_check_for_duplicates, (old_md5,)).fetchall()
-            had_duplicates = res[0][0] > 0
+            had_duplicates = res[0][0] > 1
             if had_duplicates and old_md5 != md5sum:
                 _do_second_pass = True  # noqa
                 con.execute(_clear_inode_md5_of_duplicates, (old_md5,))
