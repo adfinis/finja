@@ -19,10 +19,11 @@ import finja_shlex as shlex
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
 
-
 _cache_size = 1024 * 1024 / 2
 
 _db_cache = None
+
+_do_second_pass = False
 
 _shlex_settings = {
     '.default': {
@@ -165,6 +166,15 @@ _delete_missing_indexes = """
             WHERE
                 found = 0
         )
+"""
+
+_find_missing_files = """
+    SELECT
+        count(*)
+    FROM
+        file
+    WHERE
+        found = 0;
 """
 
 _delete_missing_files = """
@@ -442,11 +452,17 @@ def index():
 
 def do_index(db, update=False):
     # Reindexing duplicates that have changed is a two pass process
+    global _do_second_pass
+    _do_second_pass = False
     do_index_pass(db, update)
-    do_index_pass(db, True)
+    if _do_second_pass:
+        if not update:
+            print("Second pass")
+        do_index_pass(db, True)
 
 
 def do_index_pass(db, update=False):
+    global _do_second_pass
     con = db[0]
     with con:
         con.execute(_clear_found_files)
@@ -460,8 +476,11 @@ def do_index_pass(db, update=False):
             ))
             index_file(db, file_path, update)
     with con:
-        con.execute(_delete_missing_indexes)
-        con.execute(_delete_missing_files)
+        res = con.execute(_find_missing_files).fetchall()
+        if res[0][0] > 0:
+            con.execute(_delete_missing_indexes)
+            con.execute(_delete_missing_files)
+            _do_second_pass = True  # noqa
         con.execute("VACUUM;")
 
 # Indexer
@@ -491,12 +510,10 @@ def index_file(db, file_path, update = False):
             old_inode = res[0][1]
             old_md5   = res[0][2]
     if old_inode != inode:
-        if old_md5:
-            con.execute(_clear_inode_md5_of_duplicates, (old_md5,))
-        duplicate, file_ = check_file(
-            con, file_, file_path, cfile_path, inode
+        do_index, file_ = check_file(
+            con, file_, file_path, cfile_path, inode, old_md5
         )
-        if duplicate:
+        if not do_index:
             return
         read_index(db, file_, file_path, update)
     else:
@@ -506,11 +523,24 @@ def index_file(db, file_path, update = False):
             con.execute(_mark_found, (cfile_path,))
 
 
-def check_file(con, file_, file_path, cfile_path, inode):
+def check_file(con, file_, file_path, cfile_path, inode, old_md5):
+    global _do_second_pass
     md5sum = md5(file_path)
     with con:
-        res = con.execute(_check_for_duplicates, (md5sum,)).fetchall()
-        duplicated = res[0][0] > 0
+        # We assume duplicated
+        duplicated = True
+        if old_md5:
+            res = con.execute(_check_for_duplicates, (old_md5,)).fetchall()
+            had_duplicates = res[0][0] > 0
+            if had_duplicates and old_md5 != md5sum:
+                _do_second_pass = True  # noqa
+                con.execute(_clear_inode_md5_of_duplicates, (old_md5,))
+                # We know for sure not duplicated
+                duplicated = False
+        # This was the assumption, we have to check
+        if duplicated:
+            res = con.execute(_check_for_duplicates, (md5sum,)).fetchall()
+            duplicated = res[0][0] > 0
         if file_ is None:
             cur = con.cursor()
             cur.execute(
@@ -521,9 +551,12 @@ def check_file(con, file_, file_path, cfile_path, inode):
             con.execute(_update_file_entry, (md5sum, inode, file_))
         if duplicated:
             if not _args.update:
-                print("%s: duplicated, skipping" % (file_path,))
-            return (True, file_)
-    return (False, file_)
+                if md5sum == old_md5:
+                    print("%s: not changed, skipping" % (file_path,))
+                else:
+                    print("%s: duplicated, skipping" % (file_path,))
+            return (False, file_)
+    return (old_md5 != md5sum, file_)
 
 
 def read_index(db, file_, file_path, update = False):
