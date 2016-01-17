@@ -129,6 +129,8 @@ def get_line(file_path, lineno):
                 line = f.readline()
     except UnicodeDecodeError:
         pass
+    except UnicodeEncodeError:
+        pass
     except IOError:
         line = "!! File not found "
     return line
