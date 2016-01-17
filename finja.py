@@ -311,7 +311,7 @@ def index_file(db, file_path, update = False):
             if duplicated:
                 print("%s: duplicated, skipping" % (file_path,))
                 return
-        inserts = []
+        inserts = set()
         insert_count = 0
         if is_binary(file_path):
             if not update:
@@ -336,9 +336,7 @@ def index_file(db, file_path, update = False):
                         )
                         t = lex.get_token()
                         while t:
-                            if insert_count % 10240 == 0:
-                                # compress inserts
-                                inserts = list(set(inserts))
+                            if insert_count % 1024 == 0:
                                 # clear cache
                                 if len(token_dict) > _cache_size:
                                     print("Clear token cache")
@@ -349,7 +347,7 @@ def index_file(db, file_path, update = False):
                                     string_dict.clear()
                             insert_count += 1
                             word = cleanup(t)
-                            inserts.append((
+                            inserts.add((
                                 token_dict[word],
                                 file_,
                                 lex.lineno
@@ -359,7 +357,6 @@ def index_file(db, file_path, update = False):
                         if pass_ >= 2:
                             raise
                     pass_ += 1
-            inserts        = list(set(inserts))
             unique_inserts = len(inserts)
             print("%s: indexed %s/%s (%.3f)" % (
                 file_path,
