@@ -38,7 +38,7 @@ Tipp: If you are sure that your system survives till everything is indexed use:
 
    eatmydata finja -i
 
-Raw mode is meant for machines, but you can replace the \0 with colons.
+Raw mode is meant for machines, but you can replace the \\0 with colons.
 
 .. code:: bash
 
