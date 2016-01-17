@@ -799,6 +799,13 @@ def display_duplicates(db, file_):
 # Main functions (also for helpers)
 
 
+def col_main():
+    for line in sys.stdin.readlines():
+        sys.stdout.write(
+            ":".join(line.split('\0'))
+        )
+
+
 def main(argv=None):
     """Parse the args and excute"""
     global _args

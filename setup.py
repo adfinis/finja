@@ -12,7 +12,8 @@ setup(
     py_modules = ["finja", "finja_shlex"],
     entry_points = {
         'console_scripts': [
-            "finja=finja:main"
+            "finja=finja:main",
+            "finjacol=finja:col_main"
         ]
     },
     install_requires = [
