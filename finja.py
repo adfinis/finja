@@ -685,7 +685,7 @@ def search(
             path = path_decompress(match[0], db)
             print(path)
             if not _args.raw:
-                display_duplicates(db, path)
+                display_duplicates(db, match[1])
     else:
         sort_format_result(db, res_set)
 
