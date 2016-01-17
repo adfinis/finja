@@ -121,12 +121,17 @@ def cleanup(string):
     return hashlib.md5(string.lower().encode("UTF-8")).digest()
 
 
-def get_line(file_path, lineno):
+def get_line(file_path, lineno, file_):
     line = "!! Bad encoding "
     try:
-        with codecs.open(file_path, "r", encoding="UTF-8") as f:
+        if file_:
+            file_.seek(0)
             for _ in range(lineno):
-                line = f.readline()
+                line = file_.readline()
+        else:
+            with codecs.open(file_path, "r", encoding="UTF-8") as f:
+                for _ in range(lineno):
+                    line = f.readline()
     except UnicodeDecodeError:
         pass
     except IOError:
@@ -592,47 +597,48 @@ def search(
                 display_duplicates(db, old_file)
             old_file = file_
             path = match[0]
-            if not _args.raw:
-                new_dirname = os.path.dirname(path)
-                if dirname != new_dirname:
-                    dirname = new_dirname
-                    print("%s:" % dirname)
-                file_name = os.path.basename(path)
-            else:
-                file_name = path
-            context = _args.context
-            if context == 1:
-                print("%s:%5d:%s" % (
-                    file_name,
-                    match[2],
-                    get_line(path, match[2])[:-1]
-                ))
-            else:
-                offset = int(math.floor(context / 2))
-                context_list = []
-                for x in range(context):
-                    x -= offset
-                    context_list.append(
-                        get_line(path, match[2] + x)
-                    )
-                strip_list = []
-                inside = False
-                for line in reversed(context_list):
-                    if line.strip() or inside:
-                        inside = True
-                        strip_list.append(line)
-                context_list = []
-                inside = False
-                for line in reversed(strip_list):
-                    if line.strip() or inside:
-                        inside = True
-                        context_list.append(line)
-                context = "|".join(context_list)
-                print("%s:%5d\n|%s" % (
-                    file_name,
-                    match[2],
-                    context
-                ))
+            with codecs.open(path, "r", encoding="UTF-8") as f:
+                if not _args.raw:
+                    new_dirname = os.path.dirname(path)
+                    if dirname != new_dirname:
+                        dirname = new_dirname
+                        print("%s:" % dirname)
+                    file_name = os.path.basename(path)
+                else:
+                    file_name = path
+                context = _args.context
+                if context == 1:
+                    print("%s:%5d:%s" % (
+                        file_name,
+                        match[2],
+                        get_line(path, match[2], f)[:-1]
+                    ))
+                else:
+                    offset = int(math.floor(context / 2))
+                    context_list = []
+                    for x in range(context):
+                        x -= offset
+                        context_list.append(
+                            get_line(path, match[2] + x, f)
+                        )
+                    strip_list = []
+                    inside = False
+                    for line in reversed(context_list):
+                        if line.strip() or inside:
+                            inside = True
+                            strip_list.append(line)
+                    context_list = []
+                    inside = False
+                    for line in reversed(strip_list):
+                        if line.strip() or inside:
+                            inside = True
+                            context_list.append(line)
+                    context = "|".join(context_list)
+                    print("%s:%5d\n|%s" % (
+                        file_name,
+                        match[2],
+                        context
+                    ))
         display_duplicates(db, old_file)
 
 
