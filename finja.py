@@ -25,7 +25,7 @@ _whitespace_split = re.compile("[ \t\n\r]")
 
 # Common punctuation and international interpunct
 _semantic_split = re.compile(
-    "[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
+    "-[ \t\n\r]|[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
     "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
 )
 
@@ -90,7 +90,7 @@ else:
 
 def cleanup(string):
     string = string.strip()
-    if not string:
+    if len(string) < 2:
         return None
     if len(string) <= 16:
         return string.lower()
