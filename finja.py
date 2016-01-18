@@ -1,3 +1,4 @@
+# coding=UTF-8
 import argparse
 import array
 import binascii
@@ -20,9 +21,13 @@ import finja_shlex as shlex
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
 
-_whitespace_split = "[ \t\n\r]"
+_whitespace_split = re.compile("[ \t\n\r]")
 
-_semantic_split = "[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>]"
+# Common punctuation and international interpunct
+_semantic_split = re.compile(
+    "[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
+    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
+)
 
 _cache_size = 1024 * 1024 / 2
 
