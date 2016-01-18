@@ -96,7 +96,7 @@ else:
 def cleanup(string):
     if len(string) <= 16:
         return string.lower()
-    return hashlib.md5(string.lower().encode("UTF-8")).digest()
+    return hashlib.md5(string.lower()).digest()
 
 
 def md5(fname):
@@ -257,6 +257,16 @@ _insert_index = """
         (?, ?, ?);
 """
 
+_update_file_info = """
+    UPDATE
+        file
+    SET
+        found = 1,
+        encoding = ?
+    WHERE
+        path = ?
+"""
+
 _mark_found = """
     UPDATE
         file
@@ -365,7 +375,8 @@ def get_db(create=False):
                     path BLOB,
                     md5 BLOB,
                     inode INTEGER,
-                    found INTEGER DEFAULT 1
+                    found INTEGER DEFAULT 1,
+                    encoding TEXT
                 );
         """)
         connection.execute("""
@@ -406,7 +417,8 @@ def gen_search_query(pignore, file_mode):
         projection = """
             f.path,
             f.id,
-            i.line
+            i.line,
+            f.encoding
         """
     ignore_list = []
     if _python_26:
@@ -525,7 +537,8 @@ def index_file(db, file_path, update = False):
         )
         if not do_index:
             return
-        read_index(db, file_, file_path, update)
+        encoding = read_index(db, file_, file_path, update)
+        con.execute(_update_file_info, (encoding, cfile_path))
     else:
         if not update:
             print("%s: uptodate" % (file_path,))
@@ -571,6 +584,7 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
 
 def read_index(db, file_, file_path, update = False):
     con          = db[0]
+    encoding = "UTF-8"
     if is_binary(file_path):
         if not update:
             print("%s: is binary, skipping" % (file_path,))
@@ -580,21 +594,30 @@ def read_index(db, file_, file_path, update = False):
             if _index_count > _args.batch:
                 con.close()
                 sys.exit(0)
-        encoding = "UTF-8"
         try:
             inserts      = set()
             insert_count = parse_file(db, file_, file_path, inserts, encoding)
         except UnicodeDecodeError:
-            with open(file_path, "rb") as f:
-                detector = UniversalDetector()
-                for line in f.readlines():
-                    detector.feed(line)
-                    if detector.done:
-                        break
-                detector.close()
-                encoding = detector.result['encoding']
-            inserts      = set()
-            insert_count = parse_file(db, file_, file_path, inserts, encoding)
+            try:
+                with open(file_path, "rb") as f:
+                    detector = UniversalDetector()
+                    for line in f.readlines():
+                        detector.feed(line)
+                        if detector.done:
+                            break
+                    detector.close()
+                    encoding = detector.result['encoding']
+                inserts      = set()
+                insert_count = parse_file(
+                    db, file_, file_path, inserts, encoding
+                )
+            except UnicodeDecodeError:
+                print("%s: decoding failed %s" % (
+                    file_path,
+                    encoding
+                ))
+                inserts.clear()
+                return encoding
         unique_inserts = len(inserts)
         print("%s: indexed %s/%s (%.3f) %s" % (
             file_path,
@@ -606,6 +629,7 @@ def read_index(db, file_, file_path, update = False):
         with con:
             con.execute(_clear_existing_index, (file_,))
             con.executemany(_insert_index, inserts)
+    return encoding
 
 
 def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
@@ -728,7 +752,8 @@ def sort_format_result(db, res_set):
             display_duplicates(db, old_file)
         old_file = file_
         path = match[0]
-        with codecs.open(path, "r", encoding="UTF-8") as f:
+        encoding = match[3]
+        with codecs.open(path, "r", encoding=encoding) as f:
             if not _args.raw:
                 new_dirname = os.path.dirname(path)
                 if dirname != new_dirname:
