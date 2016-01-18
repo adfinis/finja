@@ -937,13 +937,21 @@ def main(argv=None):
         help='Rebuild the hole database to make it smaller',
         action='store_true',
     )
-    parser.add_argument(
-        'search',
-        help='search string',
-        type=str,
-        nargs='*',
-    )
+    if six.PY2:
+        parser.add_argument(
+            'search',
+            help='search string',
+            type=lambda s: unicode(s, sys.stdin.encoding),
+            nargs='*',
+        )
+    else:
+        parser.add_argument(
+            'search',
+            help='search string',
+            nargs='*',
+        )
     args = parser.parse_args(argv)
+    import ipdb; ipdb.set_trace()
     _args = args  # noqa
     if args.index:
         index()
