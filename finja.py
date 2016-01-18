@@ -741,6 +741,7 @@ def sort_format_result(db, res_set):
         path_decompress(x[0], db),
         x[1],
         x[2],
+        x[3],
     ) for x in res_set]
     for match in sorted(
             res_set,
