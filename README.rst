@@ -48,6 +48,13 @@ Raw mode is meant for machines, but you can replace the \\0 with colons.
 
    finja -r huhu | finjacol
 
+Index git files only.
+
+.. code:: bash
+
+   git ls-tree -r --name-only master > FINJA.lst
+   finja -i
+
 Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we

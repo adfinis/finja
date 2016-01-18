@@ -487,15 +487,21 @@ def do_index_pass(db, update=False):
     con = db[0]
     with con:
         con.execute(_clear_found_files)
-    for dirpath, _, filenames in os.walk("."):
-        if set(dirpath.split(os.sep)).intersection(_ignore_dir):
-            continue
-        for filename in filenames:
-            file_path = os.path.abspath(os.path.join(
-                dirpath,
-                filename
-            ))
-            index_file(db, file_path, update)
+    if os.path.exists("FINJA.lst"):
+        with codecs.open("FINJA.lst", "r", encoding="UTF-8") as f:
+            for path in f.readlines():
+                file_path = os.path.abspath(path.strip())
+                index_file(db, file_path, update)
+    else:
+        for dirpath, _, filenames in os.walk("."):
+            if set(dirpath.split(os.sep)).intersection(_ignore_dir):
+                continue
+            for filename in filenames:
+                file_path = os.path.abspath(os.path.join(
+                    dirpath,
+                    filename
+                ))
+                index_file(db, file_path, update)
     with con:
         res = con.execute(_find_missing_files).fetchall()
         if res[0][0] > 0:
