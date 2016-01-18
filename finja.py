@@ -16,6 +16,8 @@ from chardet.universaldetector import UniversalDetector
 
 import finja_shlex as shlex
 
+# TODO: python 3 test?
+# TODO: Shlex should parse other encoding correctly!
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
 
@@ -52,18 +54,6 @@ _python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
 
 # Conversion functions
 
-if six.PY2:
-    def blob(x):
-        return sqlite3.Binary(x)
-
-    def binstr(x):
-        return str(x)
-else:
-    def blob(x):
-        return x
-
-    def binstr(x):
-        return x
 
 if _python_26:
     def path_compress(path, db):
@@ -96,7 +86,7 @@ else:
 def cleanup(string):
     if len(string) <= 16:
         return string.lower()
-    return hashlib.md5(string.lower()).digest()
+    return hashlib.md5(string.lower().encode("UTF-8")).digest()
 
 
 def md5(fname):
@@ -323,7 +313,7 @@ class StringDict(dict):
             res = cur.execute(_token_to_string, (key,)).fetchall()
         if not res:
             raise KeyError("Token not found")
-        ret = binstr(res[0][0])
+        ret = res[0][0]
         self[key] = ret
         return ret
 
