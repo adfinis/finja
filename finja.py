@@ -25,7 +25,7 @@ _whitespace_split = re.compile("[ \t\n\r]")
 
 # Common punctuation and international interpunct
 _semantic_split = re.compile(
-    "-[ \t\n\r]|[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
+    "[-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
     "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
 )
 
@@ -141,8 +141,10 @@ _search_query = """
         file as f
     ON
         i.file_id = f.id
+    {finja_joins}
     WHERE
-        token_id=?
+        i.token_id=?
+    {terms}
     {ignore}
 """
 
@@ -405,7 +407,7 @@ def get_db(create=False):
     return _db_cache
 
 
-def gen_search_query(pignore, file_mode):
+def gen_search_query(pignore, file_mode, terms=1):
     if file_mode:
         projection = """
             f.path,
@@ -418,6 +420,28 @@ def gen_search_query(pignore, file_mode):
             i.line,
             f.encoding
         """
+    join_list = []
+    term_list = []
+    if file_mode:
+        for x in range(terms - 1):
+            join_list.append("""
+                JOIN
+                    finja as i{0}
+                ON
+                    i.file_id == i{0}.file_id
+            """.format(x))
+    else:
+        for x in range(terms - 1):
+            join_list.append("""
+                JOIN
+                    finja as i{0}
+                ON
+                    i.file_id == i{0}.file_id
+                    AND
+                    i.line == i{0}.line
+            """.format(x))
+    for x in range(terms - 1):
+        term_list.append("AND i{0}.token_id = ?".format(x))
     ignore_list = []
     if _python_26:
         filter_ = "AND f.path NOT LIKE ?"
@@ -427,7 +451,9 @@ def gen_search_query(pignore, file_mode):
         ignore_list.append(filter_)
     return _search_query.format(
         projection = projection,
-        ignore = "\n".join(ignore_list)
+        ignore = "\n".join(ignore_list),
+        finja_joins = "\n".join(join_list),
+        terms = "\n".join(term_list)
     )
 
 # OS access
@@ -742,18 +768,17 @@ def search(
     res = []
     with con:
         bignore = prepare_ignores(pignore, token_dict)
-        query = gen_search_query(bignore, file_mode)
-        for word in search:
-            word = cleanup(word)
-            args = [token_dict[word]]
-            args.extend(bignore)
-            res.append(set(con.execute(query, args).fetchall()))
-    res_set = res.pop()
-    for search_set in res:
-        res_set.intersection_update(search_set)
+        query = gen_search_query(bignore, file_mode, len(search))
+        search_tokens = [
+            token_dict[cleanup(x)] for x in search
+        ]
+        args = []
+        args.extend(search_tokens)
+        args.extend(bignore)
+        res = con.execute(query, args).fetchall()
     if file_mode:
         for match in sorted(
-                res_set,
+                res,
                 key=lambda x: x[0],
                 reverse=True
         ):
@@ -762,7 +787,7 @@ def search(
             if not _args.raw:
                 display_duplicates(db, match[1])
     else:
-        sort_format_result(db, res_set)
+        sort_format_result(db, res)
 
 
 def sort_format_result(db, res_set):
@@ -947,7 +972,7 @@ def main(argv=None):
         parser.add_argument(
             'search',
             help='search string',
-            type=lambda s: unicode(s, sys.stdin.encoding),
+            type=lambda s: unicode(s, sys.stdin.encoding),  # noqa
             nargs='*',
         )
     else:
