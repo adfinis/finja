@@ -9,6 +9,7 @@ import sqlite3
 import stat
 import struct
 import sys
+import re
 
 import six
 from binaryornot.check import is_binary
@@ -16,10 +17,12 @@ from chardet.universaldetector import UniversalDetector
 
 import finja_shlex as shlex
 
-# TODO: python 3 test?
-# TODO: Shlex should parse other encoding correctly!
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
+
+_whitespace_split = "[ \t\n\r]"
+
+_semantic_split = "[%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>]"
 
 _cache_size = 1024 * 1024 / 2
 
@@ -34,9 +37,6 @@ _shlex_settings = {
     '.override0': {
     },
     '.override1': {
-        'whitespace_split': True
-    },
-    '.override2': {
         'quotes': ""
     },
 }
@@ -84,6 +84,9 @@ else:
 
 
 def cleanup(string):
+    string = string.strip()
+    if not string:
+        return None
     if len(string) <= 16:
         return string.lower()
     return hashlib.md5(string.lower().encode("UTF-8")).digest()
@@ -573,6 +576,7 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
 
 
 def read_index(db, file_, file_path, update = False):
+    global _index_count
     con          = db[0]
     encoding = "UTF-8"
     if is_binary(file_path):
@@ -622,13 +626,30 @@ def read_index(db, file_, file_path, update = False):
     return encoding
 
 
+def regex_parser(f, file_, regex, token_dict, inserts, insert_count):
+    lineno = 1
+    for line in f.readlines():
+        tokens = re.split(regex, line)
+        for token in tokens:
+            word = cleanup(token)
+            if word:
+                insert_count += 1
+                inserts.add((
+                    token_dict[word],
+                    file_,
+                    lineno,
+                ))
+        lineno += 1
+    return insert_count
+
+
 def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
     token_dict   = db[1]
     string_dict  = db[2]
     insert_count = 0
     pass_ = 0
     with codecs.open(file_path, "r", encoding=encoding) as f:
-        while pass_ <= 2:
+        while pass_ <= 1:
             try:
                 f.seek(0)
                 lex = shlex.shlex(f, file_path)
@@ -642,18 +663,27 @@ def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
                 while t:
                     if insert_count % 1024 == 0:
                         clear_cache(token_dict, string_dict)
-                    insert_count += 1
                     word = cleanup(t)
-                    inserts.add((
-                        token_dict[word],
-                        file_,
-                        lex.lineno
-                    ))
+                    if word:
+                        insert_count += 1
+                        inserts.add((
+                            token_dict[word],
+                            file_,
+                            lex.lineno
+                        ))
                     t = lex.get_token()
             except ValueError:
-                if pass_ >= 2:
+                if pass_ >= 1:
                     raise
             pass_ += 1
+        f.seek(0)
+        insert_count = regex_parser(
+            f, file_, _whitespace_split, token_dict, inserts, insert_count
+        )
+        f.seek(0)
+        insert_count = regex_parser(
+            f, file_, _semantic_split, token_dict, inserts, insert_count
+        )
     return insert_count
 
 
