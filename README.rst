@@ -46,4 +46,7 @@ Raw mode is meant for machines, but you can replace the \\0 with colons.
 
 Thats it and it works.
 
+Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
+are not google!
+
 By dv@winged.ch and ganwell@fangorn.ch
