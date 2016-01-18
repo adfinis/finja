@@ -951,7 +951,6 @@ def main(argv=None):
             nargs='*',
         )
     args = parser.parse_args(argv)
-    import ipdb; ipdb.set_trace()
     _args = args  # noqa
     if args.index:
         index()
