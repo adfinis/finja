@@ -6,6 +6,10 @@ An awesome hack.
 
 Index and find your stuff.
 
+.. code:: bash
+
+   pip install -U git+https://github.com/adfinis-sygroup/finja.git
+
 Indexes the current directory.
 
 .. code:: bash
