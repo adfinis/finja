@@ -19,6 +19,7 @@ setup(
     install_requires = [
         "binaryornot",
         "six",
+        "chardet",
     ],
     author = "David Vogt, Jean-Louis Fuchs",
     author_email = "dv@winged.ch, ganwell@fangorn.ch",

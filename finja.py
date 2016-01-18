@@ -12,10 +12,10 @@ import sys
 
 import six
 from binaryornot.check import is_binary
+from chardet.universaldetector import UniversalDetector
 
 import finja_shlex as shlex
 
-# TODO: Helper for \0 to colons
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
 
@@ -292,11 +292,11 @@ class TokenDict(dict):
     def __missing__(self, key):
         with self.db:
             cur = self.db.cursor()
-            res = cur.execute(_string_to_token, (blob(key),)).fetchall()
+            res = cur.execute(_string_to_token, (key,)).fetchall()
             if res:
                 ret = res[0][0]
             else:
-                cur.execute(_insert_token, (blob(key),))
+                cur.execute(_insert_token, (key,))
                 ret = cur.lastrowid
         self[key] = ret
         return ret
@@ -328,6 +328,7 @@ def get_db(create=False):
     if not (create or exists):
         raise ValueError("Could not find FINJA")
     connection = sqlite3.connect("FINJA")  # noqa
+    connection.execute('PRAGMA encoding = "UTF-8";')
     if six.PY2:
         connection.text_factory = str
     if not exists:
@@ -351,7 +352,7 @@ def get_db(create=False):
             CREATE TABLE
                 token(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    string BLOB
+                    string TEXT
                 );
         """)
         connection.execute("""
@@ -570,10 +571,6 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
 
 def read_index(db, file_, file_path, update = False):
     con          = db[0]
-    token_dict   = db[1]
-    string_dict  = db[2]
-    inserts      = set()
-    insert_count = 0
     if is_binary(file_path):
         if not update:
             print("%s: is binary, skipping" % (file_path,))
@@ -583,44 +580,67 @@ def read_index(db, file_, file_path, update = False):
             if _index_count > _args.batch:
                 con.close()
                 sys.exit(0)
-        pass_ = 0
-        with open(file_path, "r") as f:
-            while pass_ <= 2:
-                try:
-                    f.seek(0)
-                    lex = shlex.shlex(f, file_path)
-                    ext = file_path.split(os.path.extsep)[-1]
-                    apply_shlex_settings(
-                        pass_,
-                        ext,
-                        lex
-                    )
-                    t = lex.get_token()
-                    while t:
-                        if insert_count % 1024 == 0:
-                            clear_cache(token_dict, string_dict)
-                        insert_count += 1
-                        word = cleanup(t)
-                        inserts.add((
-                            token_dict[word],
-                            file_,
-                            lex.lineno
-                        ))
-                        t = lex.get_token()
-                except ValueError:
-                    if pass_ >= 2:
-                        raise
-                pass_ += 1
+        encoding = "UTF-8"
+        try:
+            inserts      = set()
+            insert_count = parse_file(db, file_, file_path, inserts, encoding)
+        except UnicodeDecodeError:
+            with open(file_path, "rb") as f:
+                detector = UniversalDetector()
+                for line in f.readlines():
+                    detector.feed(line)
+                    if detector.done:
+                        break
+                detector.close()
+                encoding = detector.result['encoding']
+            inserts      = set()
+            insert_count = parse_file(db, file_, file_path, inserts, encoding)
         unique_inserts = len(inserts)
-        print("%s: indexed %s/%s (%.3f)" % (
+        print("%s: indexed %s/%s (%.3f) %s" % (
             file_path,
             unique_inserts,
             insert_count,
-            float(unique_inserts) / (insert_count + 0.0000000001)
+            float(unique_inserts) / (insert_count + 0.0000000001),
+            encoding
         ))
-    with con:
-        con.execute(_clear_existing_index, (file_,))
-        con.executemany(_insert_index, inserts)
+        with con:
+            con.execute(_clear_existing_index, (file_,))
+            con.executemany(_insert_index, inserts)
+
+
+def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
+    token_dict   = db[1]
+    string_dict  = db[2]
+    insert_count = 0
+    pass_ = 0
+    with codecs.open(file_path, "r", encoding=encoding) as f:
+        while pass_ <= 2:
+            try:
+                f.seek(0)
+                lex = shlex.shlex(f, file_path)
+                ext = file_path.split(os.path.extsep)[-1]
+                apply_shlex_settings(
+                    pass_,
+                    ext,
+                    lex
+                )
+                t = lex.get_token()
+                while t:
+                    if insert_count % 1024 == 0:
+                        clear_cache(token_dict, string_dict)
+                    insert_count += 1
+                    word = cleanup(t)
+                    inserts.add((
+                        token_dict[word],
+                        file_,
+                        lex.lineno
+                    ))
+                    t = lex.get_token()
+            except ValueError:
+                if pass_ >= 2:
+                    raise
+            pass_ += 1
+    return insert_count
 
 
 def clear_cache(token_dict, string_dict):
