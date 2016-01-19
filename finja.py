@@ -17,8 +17,6 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
-import finja_shlex as shlex
-
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
 
@@ -47,30 +45,42 @@ _pgrs_rotation   = [
 _pgrs_mod1 = len(_pgrs_rotation[0])
 _pgrs_mod2 = 71  # only supersingular primes work
 
+_positive_word_match = re.compile("\w+")
+
 _whitespace_split = re.compile("[ \t\n\r]")
 
 # Common punctuation and international interpunct
 _semantic_split = re.compile(
+    "[_$#-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
+    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
+)
+
+_semantic_split_without_underscore = re.compile(
     "[$#-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
     "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
 )
+
+_semantic_split_without_minus = re.compile(
+    "[_$#%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
+    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
+)
+
+_positive_regex = [
+    _positive_word_match,
+]
+
+_split_regex = [
+    _whitespace_split,
+    _semantic_split,
+    _semantic_split_without_underscore,
+    _semantic_split_without_minus,
+]
 
 _cache_size = 1024 * 1024 / 2
 
 _db_cache = None
 
 _do_second_pass = False
-
-_shlex_settings = {
-    '.default': {
-        'commenters': ""
-    },
-    '.override0': {
-    },
-    '.override1': {
-        'quotes': ""
-    },
-}
 
 _ignore_dir = set([
     ".git",
@@ -718,13 +728,37 @@ def read_index(db, file_, file_path, update = False):
     return encoding
 
 
-def regex_parser(f, file_, regex, token_dict, inserts, insert_count):
+def regex_parser_postive(f, file_, regex, db, inserts, insert_count):
+    token_dict   = db[1]
+    string_dict  = db[2]
+    lineno = 1
+    for line in f.readlines():
+        for match in regex.finditer(line):
+            word = cleanup(match.group(0))
+            if word:
+                if insert_count % 10240 == 0:
+                    clear_cache(token_dict, string_dict)
+                insert_count += 1
+                inserts.add((
+                    token_dict[word],
+                    file_,
+                    lineno,
+                ))
+        lineno += 1
+    return insert_count
+
+
+def regex_parser_split(f, file_, regex, db, inserts, insert_count):
+    token_dict   = db[1]
+    string_dict  = db[2]
     lineno = 1
     for line in f.readlines():
         tokens = re.split(regex, line)
         for token in tokens:
             word = cleanup(token)
             if word:
+                if insert_count % 10240 == 0:
+                    clear_cache(token_dict, string_dict)
                 insert_count += 1
                 inserts.add((
                     token_dict[word],
@@ -736,46 +770,18 @@ def regex_parser(f, file_, regex, token_dict, inserts, insert_count):
 
 
 def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
-    token_dict   = db[1]
-    string_dict  = db[2]
     insert_count = 0
-    pass_ = 0
     with codecs.open(file_path, "r", encoding=encoding) as f:
-        while pass_ <= 1:
-            try:
-                f.seek(0)
-                lex = shlex.shlex(f, file_path)
-                ext = file_path.split(os.path.extsep)[-1]
-                apply_shlex_settings(
-                    pass_,
-                    ext,
-                    lex
-                )
-                t = lex.get_token()
-                while t:
-                    if insert_count % 1024 == 0:
-                        clear_cache(token_dict, string_dict)
-                    word = cleanup(t)
-                    if word:
-                        insert_count += 1
-                        inserts.add((
-                            token_dict[word],
-                            file_,
-                            lex.lineno
-                        ))
-                    t = lex.get_token()
-            except ValueError:
-                if pass_ >= 1:
-                    raise
-            pass_ += 1
-        f.seek(0)
-        insert_count = regex_parser(
-            f, file_, _whitespace_split, token_dict, inserts, insert_count
-        )
-        f.seek(0)
-        insert_count = regex_parser(
-            f, file_, _semantic_split, token_dict, inserts, insert_count
-        )
+        for positive_match in _positive_regex:
+            insert_count = regex_parser_postive(
+                f, file_, positive_match, db, inserts, insert_count
+            )
+            f.seek(0)
+        for split in _split_regex:
+            insert_count = regex_parser_split(
+                f, file_, split, db, inserts, insert_count
+            )
+            f.seek(0)
     return insert_count
 
 
@@ -788,17 +794,6 @@ def clear_cache(token_dict, string_dict):
         print("Clear string cache")
         string_dict.clear()
 
-
-def apply_shlex_settings(pass_, ext, lex):
-    to_apply = [_shlex_settings['.default']]
-    if ext in _shlex_settings:
-        to_apply.append(_shlex_settings[ext])
-    to_apply.append(
-        _shlex_settings['.override%s' % pass_]
-    )
-    for settings in to_apply:
-        for key in settings.keys():
-            setattr(lex, key, settings[key])
 
 # Search
 
