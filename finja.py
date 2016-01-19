@@ -828,9 +828,9 @@ def search(
         args = []
         args.extend(search_tokens)
         args.extend(bignore)
-        con.set_progress_handler(progress, 800000)
+        con.set_progress_handler(progress, 1000000)
         res = con.execute(query, args).fetchall()
-        con.set_progress_handler(None, 800000)
+        con.set_progress_handler(None, 1000000)
         sys.stdout.write("\b\b\b\b\b\b\b")
     if file_mode:
         for match in sorted(
