@@ -133,7 +133,7 @@ def md5(fname):
 
 # Progress
 
-def progress(char='.', flush=True):
+def progress(char='', flush=True):
     """Write progress to stdout if needed"""
     global _pgrs_last_pos
     global _pgrs_last_char
@@ -143,7 +143,7 @@ def progress(char='.', flush=True):
         _pgrs_last_char = char  # noqa
     else:
         now = time.time()
-        if (now - pgrs_last_time) < 0.16:  # noqa
+        if (now - _pgrs_last_time) < 0.16:  # noqa
             return
         _pgrs_last_time = now  # noqa
         _pgrs_last_pos += 1  # noqa
@@ -828,9 +828,9 @@ def search(
         args = []
         args.extend(search_tokens)
         args.extend(bignore)
-        con.set_progress_handler(progress, 20)
+        con.set_progress_handler(progress, 800000)
         res = con.execute(query, args).fetchall()
-        con.set_progress_handler(None, 20)
+        con.set_progress_handler(None, 800000)
         sys.stdout.write("\b\b\b\b\b\b\b")
     if file_mode:
         for match in sorted(
