@@ -6,9 +6,8 @@ An awesome hack.
 
 Index and find your stuff.
 
-.. code:: bash
-
-   pip install -U git+https://github.com/adfinis-sygroup/finja.git
+Usage
+=====
 
 Indexes the current directory.
 
@@ -66,5 +65,19 @@ Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
 are not google!
+
+
+Installation
+============
+
+If you're using Arch Linux, there's an AUR package here:
+https://aur.archlinux.org/packages/finja-git/
+
+On other platforms, use python's package manager, pip:
+
+.. code:: bash
+
+   pip install -U git+https://github.com/adfinis-sygroup/finja.git
+
 
 By dv@winged.ch and ganwell@fangorn.ch
