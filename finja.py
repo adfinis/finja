@@ -74,7 +74,9 @@ _shlex_settings = {
 
 _ignore_dir = set([
     ".git",
-    ".svn"
+    ".svn",
+    ".hypothesis",
+    "__pycache__",
 ])
 
 _args = None
