@@ -49,7 +49,7 @@ _pgrs_mod2 = 71  # only supersingular primes work
 _positive_word_match = re.compile("\w+")
 
 _whitespace_split = " \t\n\r"
-_semantic_split = "\~\^$#%=,.:;!\?\+\"'\`\´*/\\\(\)<>{}\[\]\|"
+_semantic_split = "\~\^$&#%=,.:;!\?\+\"'\`\´*/\\\(\)<>{}\[\]\|"
 _interpunct_split = "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱"
 
 _positive_regex = [
