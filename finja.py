@@ -12,6 +12,7 @@ import stat
 import struct
 import sys
 import time
+import pickle
 
 import six
 from binaryornot.check import is_binary
@@ -47,34 +48,37 @@ _pgrs_mod2 = 71  # only supersingular primes work
 
 _positive_word_match = re.compile("\w+")
 
-_whitespace_split = re.compile("[ \t\n\r]")
-
-# Common punctuation and international interpunct
-_semantic_split = re.compile(
-    "[_$#-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
-    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
-)
-
-_semantic_split_without_underscore = re.compile(
-    "[$#-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
-    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
-)
-
-_semantic_split_without_minus = re.compile(
-    "[_$#%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
-    "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
-)
+_whitespace_split = " \t\n\r"
+_semantic_split = "\~\^$#%=,.:;!\?\+\"'\`\´*/\\\(\)<>{}\[\]\|"
+_interpunct_split = "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱"
 
 _positive_regex = [
     _positive_word_match,
 ]
 
-_split_regex = [
-    _whitespace_split,
-    _semantic_split,
-    _semantic_split_without_underscore,
-    _semantic_split_without_minus,
-]
+_split_regex = []
+
+
+def prepare_regex(interpunct=False):
+    interpunct_split = ""
+    if interpunct:
+        interpunct_split = _interpunct_split
+    _split_regex.clear()
+    _split_regex.append(re.compile("[\_\-%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[\-%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[\_%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
 
 _cache_size = 1024 * 1024 / 2
 
@@ -94,6 +98,13 @@ _args = None
 _index_count = 0
 
 _python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
+
+# Database Keys
+
+
+class DatabaseKey(object):
+    INTERPUNCT = 0
+    UNUSED     = 1
 
 # Conversion functions
 
@@ -364,6 +375,21 @@ _find_duplicates = """
         f.id != ?
 """
 
+_set_key = """
+    INSERT OR REPLACE INTO
+        key_value(key, value)
+    VALUES(?, ?)
+"""
+
+_get_key = """
+    SELECT
+        value
+    FROM
+        key_value
+    WHERE
+        key = ?
+"""
+
 # Cache classes
 
 
@@ -401,6 +427,24 @@ class StringDict(dict):
         return ret
 
 # DB functions
+
+
+def set_key(key, value, con=None):
+    bin_value = pickle.dumps(value)
+    if not con:
+        con = get_db()[0]
+    with con:
+        con.execute(_set_key, (key, bin_value))
+
+
+def get_key(key, con=None):
+    if not con:
+        con = get_db()[0]
+    with con:
+        res = con.execute(_get_key, (key,)).fetchall()
+        if res:
+            return pickle.loads(res[0][0])
+        return None
 
 
 def get_db(create=False):
@@ -471,6 +515,7 @@ def get_db(create=False):
         connection.execute("""
             CREATE INDEX key_value_key_idx ON key_value (key);
         """)
+        set_key(DatabaseKey.INTERPUNCT, _args.interpunct, connection)
     connection.commit()
     _db_cache = (
         connection,
@@ -573,6 +618,8 @@ def index():
 def do_index(db, update=False):
     # Reindexing duplicates that have changed is a two pass process
     global _do_second_pass
+    interpunct = get_key(DatabaseKey.INTERPUNCT, db[0])
+    prepare_regex(interpunct)
     _do_second_pass = False
     do_index_pass(db, update)
     if _do_second_pass:
@@ -993,6 +1040,11 @@ def main(argv=None):
     if not argv:  # pragma: no cover
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Index and find stuff')
+    parser.add_argument(
+        '--interpunct',
+        help='Use international seperators',
+        action='store_true',
+    )
     parser.add_argument(
         '--index',
         '-i',
