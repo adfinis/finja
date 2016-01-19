@@ -62,6 +62,13 @@ Optimize your search, put words yielding small result-set first.
    finja readlines for  # -> is fast
    finja for readlines  # -> is slow
 
+Filter unwanted output by path element (directory or file). Be aware:
+directories and files are tokens too: no partial matches.
+
+.. code:: bash
+
+   finja -p spamfolder gold
+
 Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
