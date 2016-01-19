@@ -6,11 +6,12 @@ import codecs
 import hashlib
 import math
 import os
+import re
 import sqlite3
 import stat
 import struct
 import sys
-import re
+import time
 
 import six
 from binaryornot.check import is_binary
@@ -20,6 +21,31 @@ import finja_shlex as shlex
 
 # TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
 # output
+
+_pgrs_last_char  = ""
+_pgrs_last_pos   = 1289  # Only evil prime number work
+_pgrs_last_time  = 0
+_pgrs_rotation   = [
+    [
+        "   ",
+        ".  ",
+        ".. ",
+        "...",
+        "..o",
+        "..O",
+        "..O",
+        "..O",
+        "..O",
+        "..o",
+        "...",
+        ".. ",
+        ".  ",
+        "   ",
+    ],
+    ["(``)", "(  )", "('')"]
+]
+_pgrs_mod1 = len(_pgrs_rotation[0])
+_pgrs_mod2 = 71  # only supersingular primes work
 
 _whitespace_split = re.compile("[ \t\n\r]")
 
@@ -103,6 +129,33 @@ def md5(fname):
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             hash.update(chunk)
     return hash.digest()
+
+
+# Progress
+
+def progress(char='.', flush=True):
+    """Write progress to stdout if needed"""
+    global _pgrs_last_pos
+    global _pgrs_last_char
+    global _pgrs_last_time
+    if _pgrs_last_char != char:  # noqa
+        sys.stdout.write(char)
+        _pgrs_last_char = char  # noqa
+    else:
+        now = time.time()
+        if (now - pgrs_last_time) < 0.16:  # noqa
+            return
+        _pgrs_last_time = now  # noqa
+        _pgrs_last_pos += 1  # noqa
+        pos1 = _pgrs_last_pos % _pgrs_mod1
+        pos2 = min(_pgrs_last_pos % _pgrs_mod2, 2)
+        sys.stdout.write("%s%s" % (
+            _pgrs_rotation[1][pos2],
+            _pgrs_rotation[0][pos1]
+        ))
+        sys.stdout.write("\b\b\b\b\b\b\b")
+    if flush:  # pragma: no cover
+        sys.stdout.flush()
 
 
 # SQL Queries
@@ -775,7 +828,10 @@ def search(
         args = []
         args.extend(search_tokens)
         args.extend(bignore)
+        con.set_progress_handler(progress, 20)
         res = con.execute(query, args).fetchall()
+        con.set_progress_handler(None, 20)
+        sys.stdout.write("\b\b\b\b\b\b\b")
     if file_mode:
         for match in sorted(
                 res,
