@@ -55,6 +55,13 @@ Index git files only.
    git ls-tree -r --name-only master > FINJA.lst
    finja -i
 
+Optimize your search, put words yielding small result-set first.
+
+.. code:: bash
+
+   finja readlines for  # -> is fast
+   finja for readlines  # -> is slow
+
 Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
