@@ -65,6 +65,7 @@ def prepare_regex(interpunct=False):
     if interpunct:
         interpunct_split = _interpunct_split
     _split_regex = []
+    _split_regex.append(re.compile("[%s]" % _whitespace_split))
     _split_regex.append(re.compile("[\_\-%s%s%s]" % (
         _semantic_split,
         _whitespace_split,
