@@ -667,10 +667,12 @@ def index_file(db, file_path, update = False):
     try:
         stat_res = os.stat(file_path)
     except OSError:
-        print("%s: not found, skipping" % (file_path,))
+        if not update:
+            print("%s: not found, skipping" % (file_path,))
         return
     if not stat.S_ISREG(stat_res[stat.ST_MODE]):
-        print("%s: not a plain file, skipping" % (file_path,))
+        if not update:
+            print("%s: not a plain file, skipping" % (file_path,))
         return
     inode      = stat_res[stat.ST_INO]
     old_inode  = None
