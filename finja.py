@@ -133,7 +133,7 @@ def md5(fname):
 
 # Progress
 
-def progress(char='', flush=True):
+def progress(char=' ', flush=True):
     """Write progress to stdout if needed"""
     global _pgrs_last_pos
     global _pgrs_last_char
