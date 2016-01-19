@@ -883,7 +883,9 @@ def prepare_ignores(pignore, token_dict):
             tignore = token_dict[ignore]
             bignore.append(
                 "%{0}%".format(
-                    binascii.b2a_hex(struct.pack('I', tignore)).upper()
+                    binascii.b2a_hex(
+                        struct.pack('I', tignore)
+                    ).upper().decode("ASCII")
                 )
             )
     return bignore
