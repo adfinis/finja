@@ -51,7 +51,7 @@ _whitespace_split = re.compile("[ \t\n\r]")
 
 # Common punctuation and international interpunct
 _semantic_split = re.compile(
-    "[-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>"
+    "[$#-%=,.:;!\?\+\"'`*/\\\(\) \t\n\r<>{}[]|"
     "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱]"
 )
 
