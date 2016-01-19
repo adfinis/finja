@@ -55,13 +55,6 @@ Index git files only.
    git ls-tree -r --name-only master > FINJA.lst
    finja -i
 
-Optimize your search, put words yielding small result-set first.
-
-.. code:: bash
-
-   finja readlines for  # -> is fast
-   finja for readlines  # -> is slow
-
 Filter unwanted output by path element (directory or file). Be aware:
 directories and files are tokens too: no partial matches.
 
