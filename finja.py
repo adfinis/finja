@@ -188,6 +188,14 @@ _insert_token = """
         (?);
 """
 
+
+_token_cardinality = """
+    SELECT COUNT(id) count
+    FROM finja
+    WHERE token_id = ?
+"""
+
+
 _token_to_string = """
     SELECT
         string
@@ -798,6 +806,20 @@ def clear_cache(token_dict, string_dict):
 # Search
 
 
+def search_term_cardinality(term_id):
+    db         = get_db(create = False)
+    con        = db[0]
+
+    curs = con.cursor()
+    res = curs.execute(_token_cardinality, [term_id]).fetchall()
+    return res[0][0]
+
+
+def order_search_terms(search):
+    res = sorted(search, key=search_term_cardinality)
+    return res
+
+
 def search(
         search,
         pignore,
@@ -819,9 +841,9 @@ def search(
     with con:
         bignore = prepare_ignores(pignore, token_dict)
         query = gen_search_query(bignore, file_mode, len(search))
-        search_tokens = [
+        search_tokens = order_search_terms([
             token_dict[cleanup(x)] for x in search
-        ]
+        ])
         args = []
         args.extend(search_tokens)
         args.extend(bignore)
