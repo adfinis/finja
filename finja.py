@@ -60,10 +60,11 @@ _split_regex = []
 
 
 def prepare_regex(interpunct=False):
+    global _split_regex
     interpunct_split = ""
     if interpunct:
         interpunct_split = _interpunct_split
-    _split_regex.clear()
+    _split_regex = []
     _split_regex.append(re.compile("[\_\-%s%s%s]" % (
         _semantic_split,
         _whitespace_split,
