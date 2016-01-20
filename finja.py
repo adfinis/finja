@@ -1125,65 +1125,65 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Index and find stuff')
     parser.add_argument(
         '--interpunct',
-        help='Use international seperators',
+        help='use international seperators',
         action='store_true',
     )
     parser.add_argument(
         '--index',
         '-i',
-        help='Index the current directory',
+        help='index the current directory',
         action='store_true',
     )
     parser.add_argument(
         '--update',
         '-u',
-        help='Update the index before searching',
+        help='update the index before searching',
         action='store_true',
     )
     parser.add_argument(
         '--file-mode',
         '-f',
-        help='Ignore line-number when matching search strings',
+        help='ignore line-number when matching search strings',
         action='store_true',
     )
     parser.add_argument(
         '--context',
         '-c',
-        help='Lines of context. Default: 1',
+        help='lines of context. Default: 1',
         default=1,
         type=int
     )
     parser.add_argument(
         '--raw',
         '-r',
-        help="Raw output to parse with tools: \\0 delimiter "
+        help="raw output to parse with tools: \\0 delimiter "
              "(doesn't display duplicates, use finjadup)",
         action='store_true',
     )
     parser.add_argument(
         '--batch',
         '-b',
-        help='Only read N files and then stop. Default 0 (disabled)',
+        help='only read N files and then stop. Default 0 (disabled)',
         default=0,
         type=int
     )
     parser.add_argument(
         '--pignore',
         '-p',
-        help='Ignore path that contain one of the elements. Can be repeated',
+        help='ignore path that contain one of the elements. Can be repeated',
         nargs='?',
         action='append'
     )
     parser.add_argument(
         '--vacuum',
         '-v',
-        help='Rebuild the hole database to make it smaller',
+        help='rebuild the hole database to make it smaller',
         action='store_true',
     )
     parser.add_argument(
         '--less-memory',
         '-l',
-        help='Use less memory',
+        help='use less memory',
         action='store_true',
     )
     if six.PY2:
@@ -1202,7 +1202,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     _args = args  # noqa
     if args.less_memory:
-        _cache_size = int(_cache_size / 100)
+        _cache_size = int(_cache_size / 100)  # noqa
     if args.index:
         index()
     if not args.pignore:
