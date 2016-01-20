@@ -864,6 +864,7 @@ def read_index(db, file_, file_path, update = False):
             new,
             encoding
         ))
+        clear_cache(db)
     return encoding
 
 
@@ -874,8 +875,6 @@ def regex_parser_postive(f, file_, regex, db, inserts, insert_count):
         for match in regex.finditer(line):
             word = cleanup(match.group(0))
             if word:
-                if insert_count % 10240 == 0:
-                    clear_cache(db)
                 insert_count += 1
                 inserts.add((
                     token_dict[word],
@@ -894,8 +893,6 @@ def regex_parser_split(f, file_, regex, db, inserts, insert_count):
         for token in tokens:
             word = cleanup(token)
             if word:
-                if insert_count % 10240 == 0:
-                    clear_cache(db)
                 insert_count += 1
                 inserts.add((
                     token_dict[word],
