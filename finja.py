@@ -56,7 +56,7 @@ _pgrs_mod2 = 71  # only supersingular primes work
 _positive_word_match = re.compile("\w+")
 
 _whitespace_split = " \t\n\r"
-_semantic_split = "\~\^$&#%=,.:;!\?\+\"'\`\´*/\\\(\)<>{}\[\]\|"
+_semantic_split = "\~\^$&#%=,:;!\?\+\"'\`\´*/\\\(\)<>{}\[\]\|"
 _interpunct_split = "··᛫•‧∘∙⋅●◦⦁⸰・･𐂧ּ⸱"
 
 _positive_regex = [
@@ -73,17 +73,22 @@ def prepare_regex(interpunct=False):
         interpunct_split = _interpunct_split
     _split_regex = []
     _split_regex.append(re.compile("[%s]" % _whitespace_split))
-    _split_regex.append(re.compile("[\_\-%s%s%s]" % (
+    _split_regex.append(re.compile("[.\_\-%s%s%s]" % (
         _semantic_split,
         _whitespace_split,
         interpunct_split
     )))
-    _split_regex.append(re.compile("[\-%s%s%s]" % (
+    _split_regex.append(re.compile("[.\-%s%s%s]" % (
         _semantic_split,
         _whitespace_split,
         interpunct_split
     )))
-    _split_regex.append(re.compile("[\_%s%s%s]" % (
+    _split_regex.append(re.compile("[.\_%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[%s%s%s]" % (
         _semantic_split,
         _whitespace_split,
         interpunct_split
