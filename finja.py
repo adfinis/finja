@@ -108,6 +108,12 @@ _ignore_dir = set([
     "__pycache__",
 ])
 
+_ignore_ext = set([
+    "svg",
+    "pyc",
+    "ai",
+])
+
 _args = None
 
 _index_count = 0
@@ -723,11 +729,13 @@ def do_index_pass(db, update=False):
             if set(dirpath.split(os.sep)).intersection(_ignore_dir):
                 continue
             for filename in filenames:
-                file_path = os.path.abspath(os.path.join(
-                    dirpath,
-                    filename
-                ))
-                index_file(db, file_path, update)
+                ext = filename.split(os.path.extsep)[-1]
+                if ext not in _ignore_ext:
+                    file_path = os.path.abspath(os.path.join(
+                        dirpath,
+                        filename
+                    ))
+                    index_file(db, file_path, update)
     with con:
         res = con.execute(_find_missing_files).fetchall()
         if res[0][0] > 0:
