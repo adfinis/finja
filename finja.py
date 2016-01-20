@@ -230,9 +230,12 @@ _insert_path_token = """
 """
 
 _token_cardinality = """
-    SELECT COUNT(id) count
-    FROM finja
-    WHERE token_id = ?
+    SELECT
+        COUNT(id) count
+    FROM
+        finja
+    WHERE
+        token_id = ?
 """
 
 
