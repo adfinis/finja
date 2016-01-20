@@ -22,7 +22,7 @@ from chardet.universaldetector import UniversalDetector
 # output
 
 # If the user pipes we write our internal encoding which is UTF-8
-# is one of the great things about Python 3, no more hacky hacky
+# This is one of the great things about Python 3, no more hacky hacky
 if six.PY2:
     if not sys.stdout.isatty():
         writer = codecs.getwriter("UTF-8")
