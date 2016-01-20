@@ -856,7 +856,7 @@ def read_index(db, file_, file_path, update = False):
             con.execute(_clear_existing_index, (file_,))
             con.executemany(_insert_index, inserts)
         unique_inserts = len(inserts)
-        print("%s: indexed %s/%s (%.3f) New: %s %s" % (
+        print("%s: indexed %s/%s (%.3f) new: %s %s" % (
             file_path,
             unique_inserts,
             insert_count,
