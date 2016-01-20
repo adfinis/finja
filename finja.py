@@ -974,7 +974,9 @@ def search(
     if update:
         do_index(db, update=True)
     if _args.vacuum:
+        con.set_progress_handler(progress, 1000000)
         con.execute("VACUUM;")
+        con.set_progress_handler(None, 1000000)
     if not search:
         return
     res = []
