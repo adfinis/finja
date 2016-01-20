@@ -112,6 +112,7 @@ _ignore_ext = set([
     "svg",
     "pyc",
     "ai",
+    "ps",
 ])
 
 _args = None
@@ -729,7 +730,9 @@ def do_index_pass(db, update=False):
             if set(dirpath.split(os.sep)).intersection(_ignore_dir):
                 continue
             for filename in filenames:
-                ext = filename.split(os.path.extsep)[-1]
+                ext = None
+                if '.' in filename:
+                    ext = filename.split(os.path.extsep)[-1].lower()
                 if ext not in _ignore_ext:
                     file_path = os.path.abspath(os.path.join(
                         dirpath,
