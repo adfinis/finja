@@ -35,7 +35,8 @@ Also works from a subdirectory.
    cd submdir
    find huhu
 
-Tipp: If you are sure that your system survives till everything is indexed use.
+Tipp: If you are sure that your system survives till everything is indexed use
+eatmydata.
 
 .. code:: bash
 
