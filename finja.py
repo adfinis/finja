@@ -94,7 +94,7 @@ def prepare_regex(interpunct=False):
         interpunct_split
     )))
 
-_cache_size = 1024 * 1024 / 2
+_cache_size = 1024 * 1024
 
 _db_cache = None
 
@@ -118,7 +118,7 @@ _python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
 
 class DatabaseKey(object):
     INTERPUNCT = 0
-    UNUSED     = 1
+    MAX_ID     = 1
 
 # Conversion functions
 
@@ -197,6 +197,13 @@ def progress(char=' ', flush=True):
 
 # SQL Queries
 
+_token_max_id = """
+    SELECT
+        max(id)
+    FROM
+        token
+"""
+
 _string_to_token = """
     SELECT
         id
@@ -217,9 +224,9 @@ _string_to_path_token = """
 
 _insert_token = """
     INSERT INTO
-        token(string)
+        token(id, string)
     VALUES
-        (?);
+        (?, ?);
 """
 
 _insert_path_token = """
@@ -447,6 +454,11 @@ class TokenDict(dict):
     def __init__(self, db, *args, **kwargs):
         super(TokenDict, self).__init__(*args, **kwargs)
         self.db = db
+        self.token_id = 41
+        self.bulk_insert = []
+        res = get_key(DatabaseKey.MAX_ID, con=self.db)
+        if res:
+            self.token_id = res
 
     def __missing__(self, key):
         with self.db:
@@ -455,10 +467,19 @@ class TokenDict(dict):
             if res:
                 ret = res[0][0]
             else:
-                cur.execute(_insert_token, (key,))
-                ret = cur.lastrowid
+                self.token_id += 1
+                ret = self.token_id
+                self.bulk_insert.append((ret, key))
         self[key] = ret
         return ret
+
+    def commit(self):
+        bulk_insert = self.bulk_insert
+        new = len(bulk_insert)
+        self.db.executemany(_insert_token, bulk_insert)
+        self.bulk_insert = []
+        set_key(DatabaseKey.MAX_ID, self.token_id, con=self.db)
+        return new
 
 
 class PathStringDict(dict):
@@ -528,12 +549,9 @@ def get_db(create=False):
         connection.execute("""
             CREATE TABLE
                 token(
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    string TEXT
+                    string TEXT UNIQUE PRIMARY KEY,
+                    id INTEGER
                 );
-        """)
-        connection.execute("""
-            CREATE INDEX token_string_idx ON token (string);
         """)
         connection.execute("""
             CREATE TABLE
@@ -798,6 +816,7 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
 def read_index(db, file_, file_path, update = False):
     global _index_count
     con          = db[0]
+    token_dict   = db[1]
     encoding = "UTF-8"
     if is_binary(file_path):
         if not update:
@@ -832,17 +851,19 @@ def read_index(db, file_, file_path, update = False):
                 ))
                 inserts.clear()
                 return encoding
+        with con:
+            new = token_dict.commit()
+            con.execute(_clear_existing_index, (file_,))
+            con.executemany(_insert_index, inserts)
         unique_inserts = len(inserts)
-        print("%s: indexed %s/%s (%.3f) %s" % (
+        print("%s: indexed %s/%s (%.3f) New: %s %s" % (
             file_path,
             unique_inserts,
             insert_count,
             float(unique_inserts) / (insert_count + 0.0000000001),
+            new,
             encoding
         ))
-        with con:
-            con.execute(_clear_existing_index, (file_,))
-            con.executemany(_insert_index, inserts)
     return encoding
 
 
@@ -904,9 +925,12 @@ def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
 def clear_cache(db):
     # clear cache
     db = list(db)[1:]
+    size = 0
     for cache_dict in db:
-        if len(cache_dict) > _cache_size:
-            print("Clear cache")
+        size += len(cache_dict)
+    if size > _cache_size:
+        print("Clear cache")
+        for cache_dict in db:
             cache_dict.clear()
 
 # Search
