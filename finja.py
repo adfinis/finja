@@ -131,23 +131,23 @@ if _python_26:
         return path
 else:
     def path_compress(path, db):
-        token_dict = db[1]
+        path_token_dict = db[2]
         path_arr   = path.split(os.sep)
         path_ids   = array.array('I')
-        path_ids.extend([token_dict[x] for x in path_arr])
+        path_ids.extend([path_token_dict[x] for x in path_arr])
         if six.PY2:
             return path_ids.tostring()
         else:
             return path_ids.tobytes()
 
     def path_decompress(path, db):
-        string_dict = db[2]
+        path_string_dict = db[3]
         path_arr    = array.array('I')
         if six.PY2:
             path_arr.fromstring(path)
         else:
             path_arr.frombytes(path)
-        path_strs = [string_dict[x] for x in path_arr]
+        path_strs = [path_string_dict[x] for x in path_arr]
         return os.sep.join(path_strs)
 
 
@@ -206,6 +206,15 @@ _string_to_token = """
         string = ?;
 """
 
+_string_to_path_token = """
+    SELECT
+        id
+    FROM
+        path_token
+    WHERE
+        string = ?;
+"""
+
 _insert_token = """
     INSERT INTO
         token(string)
@@ -213,6 +222,12 @@ _insert_token = """
         (?);
 """
 
+_insert_path_token = """
+    INSERT INTO
+        path_token(string)
+    VALUES
+        (?);
+"""
 
 _token_cardinality = """
     SELECT COUNT(id) count
@@ -221,11 +236,11 @@ _token_cardinality = """
 """
 
 
-_token_to_string = """
+_path_token_to_string = """
     SELECT
         string
     FROM
-        token
+        path_token
     WHERE
         id = ?;
 """
@@ -407,6 +422,24 @@ _get_key = """
 # Cache classes
 
 
+class PathTokenDict(dict):
+    def __init__(self, db, *args, **kwargs):
+        super(PathTokenDict, self).__init__(*args, **kwargs)
+        self.db = db
+
+    def __missing__(self, key):
+        with self.db:
+            cur = self.db.cursor()
+            res = cur.execute(_string_to_path_token, (key,)).fetchall()
+            if res:
+                ret = res[0][0]
+            else:
+                cur.execute(_insert_path_token, (key,))
+                ret = cur.lastrowid
+        self[key] = ret
+        return ret
+
+
 class TokenDict(dict):
     def __init__(self, db, *args, **kwargs):
         super(TokenDict, self).__init__(*args, **kwargs)
@@ -425,15 +458,15 @@ class TokenDict(dict):
         return ret
 
 
-class StringDict(dict):
+class PathStringDict(dict):
     def __init__(self, db, *args, **kwargs):
-        super(StringDict, self).__init__(*args, **kwargs)
+        super(PathStringDict, self).__init__(*args, **kwargs)
         self.db = db
 
     def __missing__(self, key):
         with self.db:
             cur = self.db.cursor()
-            res = cur.execute(_token_to_string, (key,)).fetchall()
+            res = cur.execute(_path_token_to_string, (key,)).fetchall()
         if not res:
             raise KeyError("Token not found")
         ret = res[0][0]
@@ -501,6 +534,16 @@ def get_db(create=False):
         """)
         connection.execute("""
             CREATE TABLE
+                path_token(
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    string TEXT
+                );
+        """)
+        connection.execute("""
+            CREATE INDEX path_token_string_idx ON path_token (string);
+        """)
+        connection.execute("""
+            CREATE TABLE
                 file(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     path BLOB,
@@ -534,7 +577,8 @@ def get_db(create=False):
     _db_cache = (
         connection,
         TokenDict(connection),
-        StringDict(connection)
+        PathTokenDict(connection),
+        PathStringDict(connection),
     )
     return _db_cache
 
@@ -801,14 +845,13 @@ def read_index(db, file_, file_path, update = False):
 
 def regex_parser_postive(f, file_, regex, db, inserts, insert_count):
     token_dict   = db[1]
-    string_dict  = db[2]
     lineno = 1
     for line in f.readlines():
         for match in regex.finditer(line):
             word = cleanup(match.group(0))
             if word:
                 if insert_count % 10240 == 0:
-                    clear_cache(token_dict, string_dict)
+                    clear_cache(db)
                 insert_count += 1
                 inserts.add((
                     token_dict[word],
@@ -821,7 +864,6 @@ def regex_parser_postive(f, file_, regex, db, inserts, insert_count):
 
 def regex_parser_split(f, file_, regex, db, inserts, insert_count):
     token_dict   = db[1]
-    string_dict  = db[2]
     lineno = 1
     for line in f.readlines():
         tokens = re.split(regex, line)
@@ -829,7 +871,7 @@ def regex_parser_split(f, file_, regex, db, inserts, insert_count):
             word = cleanup(token)
             if word:
                 if insert_count % 10240 == 0:
-                    clear_cache(token_dict, string_dict)
+                    clear_cache(db)
                 insert_count += 1
                 inserts.add((
                     token_dict[word],
@@ -856,15 +898,13 @@ def parse_file(db, file_, file_path, inserts, encoding="UTF-8"):
     return insert_count
 
 
-def clear_cache(token_dict, string_dict):
+def clear_cache(db):
     # clear cache
-    if len(token_dict) > _cache_size:
-        print("Clear token cache")
-        token_dict.clear()
-    if len(string_dict) > _cache_size:
-        print("Clear string cache")
-        string_dict.clear()
-
+    db = list(db)[1:]
+    for cache_dict in db:
+        if len(cache_dict) > _cache_size:
+            print("Clear cache")
+            cache_dict.clear()
 
 # Search
 
@@ -891,9 +931,10 @@ def search(
 ):
     finja = find_finja()
     os.chdir(finja)
-    db         = get_db(create = False)
-    con        = db[0]
-    token_dict = db[1]
+    db              = get_db(create = False)
+    con             = db[0]
+    token_dict      = db[1]
+    path_token_dict = db[2]
     if update:
         do_index(db, update=True)
     if _args.vacuum:
@@ -902,7 +943,7 @@ def search(
         return
     res = []
     with con:
-        bignore = prepare_ignores(pignore, token_dict)
+        bignore = prepare_ignores(pignore, path_token_dict)
         query = gen_search_query(bignore, file_mode, len(search))
         search_tokens = order_search_terms([
             token_dict[cleanup(x)] for x in search
@@ -1010,7 +1051,7 @@ def display_no_context(f, match, path, file_name):
         ))
 
 
-def prepare_ignores(pignore, token_dict):
+def prepare_ignores(pignore, path_token_dict):
     if _python_26:
         bignore = []
         for ignore in pignore:
@@ -1018,7 +1059,7 @@ def prepare_ignores(pignore, token_dict):
     else:
         bignore = []
         for ignore in pignore:
-            tignore = token_dict[ignore]
+            tignore = path_token_dict[ignore]
             bignore.append(
                 "%{0}%".format(
                     binascii.b2a_hex(
