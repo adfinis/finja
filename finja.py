@@ -103,6 +103,7 @@ _do_second_pass = False
 _ignore_dir = set([
     ".git",
     ".svn",
+    ".bzr",
     ".hypothesis",
     "__pycache__",
 ])
