@@ -22,9 +22,11 @@ from chardet.universaldetector import UniversalDetector
 # output
 
 # If the user pipes we write our internal encoding which is UTF-8
-if not sys.stdout.isatty():
-    writer = codecs.getwriter("UTF-8")
-    sys.stdout = writer(sys.stdout)
+# is one of the great things about Python 3, no more hacky hacky
+if six.PY2:
+    if not sys.stdout.isatty():
+        writer = codecs.getwriter("UTF-8")
+        sys.stdout = writer(sys.stdout)
 
 _pgrs_last_char  = ""
 _pgrs_last_pos   = 1289  # Only evil prime number work
