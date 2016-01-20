@@ -1118,6 +1118,7 @@ def col_main():
 def main(argv=None):
     """Parse the args and excute"""
     global _args
+    global _cache_size
     if not argv:  # pragma: no cover
         argv = sys.argv[1:]
     parser = argparse.ArgumentParser(description='Index and find stuff')
@@ -1178,6 +1179,12 @@ def main(argv=None):
         help='Rebuild the hole database to make it smaller',
         action='store_true',
     )
+    parser.add_argument(
+        '--less-memory',
+        '-l',
+        help='Use less memory',
+        action='store_true',
+    )
     if six.PY2:
         parser.add_argument(
             'search',
@@ -1193,6 +1200,8 @@ def main(argv=None):
         )
     args = parser.parse_args(argv)
     _args = args  # noqa
+    if args.less_memory:
+        _cache_size = int(_cache_size / 100)
     if args.index:
         index()
     if not args.pignore:
