@@ -106,6 +106,7 @@ _ignore_dir = set([
     ".bzr",
     ".hypothesis",
     "__pycache__",
+    ".cache",
 ])
 
 # Very common binary files and annoying text-files like svg
