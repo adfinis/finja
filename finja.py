@@ -1280,7 +1280,7 @@ def main(argv=None):
     parser.add_argument(
         '--clear-inodes',
         help='reset all inodes and modification date, '
-             'will cause finja to rescan everything',
+             'will cause finja to rescan everything. Use with -i or -u',
         action='store_true',
     )
     if six.PY2:
