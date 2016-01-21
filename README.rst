@@ -2,7 +2,7 @@
 Finja
 =====
 
-An awesome hack.
+An awesome hack. Your friendly finding ninja.
 
 Index and find your stuff.
 
