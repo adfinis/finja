@@ -122,6 +122,7 @@ _ignore_ext = set([
     "tiff",
     "jpg",
     "jpeg",
+    "ico",
     "avi",
     "mpg",
     "mpeg",
