@@ -1279,7 +1279,7 @@ def main(argv=None):
     )
     parser.add_argument(
         '--clear-inodes',
-        help='reset all inodes and modification date, '
+        help='reset all inodes and modification dates, '
              'will cause finja to rescan everything. Use with -i or -u',
         action='store_true',
     )
