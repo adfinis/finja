@@ -1268,7 +1268,7 @@ def main(argv=None):
     parser.add_argument(
         '--vacuum',
         '-v',
-        help='rebuild the hole database to make it smaller',
+        help='rebuild the whole database to make it smaller',
         action='store_true',
     )
     parser.add_argument(
