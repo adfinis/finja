@@ -13,7 +13,8 @@ setup(
     entry_points = {
         'console_scripts': [
             "finja=finja:main",
-            "finjacol=finja:col_main"
+            "finjacol=finja:col_main",
+            "finjadup=finja:dup_main"
         ]
     },
     install_requires = [

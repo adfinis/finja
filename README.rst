@@ -48,6 +48,18 @@ Raw mode is meant for machines, but you can replace the \\0 with colons.
 
    finja -r huhu | finjacol
 
+Get reduplicated raw human readable output.
+
+.. code:: bash
+
+   finja -r eatmydata | finjadup | finjacol
+
+Get reduplicated raw output.
+
+.. code:: bash
+
+   finja -r eatmydata | finjadup
+
 Index git files only.
 
 .. code:: bash

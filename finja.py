@@ -1156,6 +1156,47 @@ def col_main():
         )
 
 
+def reduplicate(db, last_file_path, to_duplicate):
+    con = db[0]
+    cfile_path = path_compress(last_file_path, db)
+    res = con.execute(_find_file, (cfile_path,)).fetchall()
+    if res:
+        file_     = res[0][0]
+        with con:
+            dups = con.execute(
+                _find_duplicates, (file_, file_)
+            ).fetchall()
+            for dup_cfile_path in dups:
+                dup_file_path = path_decompress(dup_cfile_path[0], db)
+                for dup in to_duplicate:
+                    sys.stdout.write("%s\0%s\0%s" % (
+                        dup_file_path,
+                        dup[0],
+                        dup[1]
+                    ))
+
+
+def dup_main():
+    finja = find_finja()
+    os.chdir(finja)
+    db = get_db()
+    to_duplicate = []
+    last_file_path = ""
+    for line in sys.stdin.readlines():
+        (
+            file_path,
+            lineno,
+            text
+        ) = line.split('\0')
+        if last_file_path != file_path:
+            reduplicate(db, last_file_path, to_duplicate)
+            to_duplicate = []
+            last_file_path = file_path
+        to_duplicate.append((lineno, text))
+        sys.stdout.write(line)
+    reduplicate(db, last_file_path, to_duplicate)
+
+
 def main(argv=None):
     """Parse the args and excute"""
     global _args
