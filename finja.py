@@ -808,9 +808,9 @@ def index_file(db, file_path, update = False):
     with con:
         res = con.execute(_find_file, (cfile_path,)).fetchall()
         if res:
-            file_     = res[0][0]
+            file_         = res[0][0]
             old_inode_mod = res[0][1]
-            old_md5   = res[0][2]
+            old_md5       = res[0][2]
     if old_inode_mod != inode_mod:
         do_index, file_ = check_file(
             con, file_, file_path, cfile_path, inode_mod, old_md5
