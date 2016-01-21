@@ -745,8 +745,9 @@ def do_index(db, update=False):
 def do_index_pass(db, update=False):
     global _do_second_pass
     con = db[0]
-    with con:
-        con.execute(_clear_found_files)
+    if not _args.batch > 0:
+        with con:
+            con.execute(_clear_found_files)
     if os.path.exists("FINJA.lst"):
         with codecs.open("FINJA.lst", "r", encoding="UTF-8") as f:
             for path in f.readlines():
