@@ -92,5 +92,21 @@ On other platforms, use python's package manager, pip:
 
    pip install -U git+https://github.com/adfinis-sygroup/finja.git
 
+Why?
+====
+
+Unlike many of the great alternatives to finja, finja is generic. It doesn't
+know what it is indexing. Finja achieves good indexing quality by doing multiple
+passes with different tokenization methods and splitting character lists.
+Therefore it is slower and has a bigger index than non-generic indexers, but it
+just indexes your stuff and won't miss any files it doesn't know about.
+
+Finja is doing something wrong, can I customize the settings?
+=============================================================
+
+We would like to keep settings to a minimum. At the moment there is only
+international interpunct, that can be switched on. Please open an issue on Github
+and describe your problem, we will try to find a generic solution. If we don't
+find such a solution we might add a setting.
 
 By dv@winged.ch and ganwell@fangorn.ch

@@ -18,9 +18,6 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
-# TODO: Helper for raw: You can pipe raw output and it will duplicate the raw
-# output
-
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
 if six.PY2:
@@ -100,6 +97,7 @@ _db_cache = None
 _do_second_pass = False
 
 _ignore_dir = set([
+    ".hg",
     ".git",
     ".svn",
     ".bzr",
