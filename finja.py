@@ -108,11 +108,40 @@ _ignore_dir = set([
     "__pycache__",
 ])
 
+# Very common binary files and annoying text-files like svg
+
 _ignore_ext = set([
     "svg",
     "pyc",
     "ai",
     "ps",
+    "png",
+    "bmp",
+    "gif",
+    "tif",
+    "tiff",
+    "jpg",
+    "jpeg",
+    "avi",
+    "mpg",
+    "mpeg",
+    "mp3",
+    "wav",
+    "aiff",
+    "mp4",
+    "m4a",
+    "m4v",
+    "zip",
+    "gz",
+    "tar",
+    "rar",
+    "mov",
+    "ogg",
+    "ogv",
+    "raw",
+    "tiff",
+    "pdf",
+    "jar",
 ])
 
 _args = None
