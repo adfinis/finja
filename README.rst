@@ -4,12 +4,12 @@ Finja
 
 An awesome hack. Your friendly finding ninja.
 
-Index and find your stuff.
-
 Usage
 =====
 
-Indexes the current directory.
+Index and find your stuff.
+
+Index the current directory.
 
 .. code:: bash
 
@@ -35,7 +35,7 @@ Also works from a subdirectory.
    cd submdir
    find huhu
 
-Tipp: If you are sure that your system survives till everything is indexed use
+Tip: If you are sure that your system survives till everything is indexed use
 eatmydata.
 
 .. code:: bash
@@ -78,7 +78,6 @@ Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
 are not google!
-
 
 Installation
 ============
