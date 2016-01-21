@@ -315,7 +315,7 @@ _clear_found_files = """
 _clear_inodes = """
     UPDATE
         file
-    SET inode = null
+    SET inode_mod = null
 """
 
 _delete_missing_indexes = """
@@ -362,7 +362,7 @@ _delete_missing_files = """
 _find_file = """
     SELECT
         id,
-        inode,
+        inode_mod,
         md5
     FROM
         file
@@ -383,7 +383,7 @@ _clear_inode_md5_of_duplicates = """
     UPDATE
         file
     SET
-        inode = null,
+        inode_mod = null,
         md5 = null
     WHERE
         md5=?;
@@ -391,7 +391,7 @@ _clear_inode_md5_of_duplicates = """
 
 _create_new_file_entry = """
     INSERT INTO
-        file(path, md5, inode, found)
+        file(path, md5, inode_mod, found)
     VALUES
         (?, ?, ?, 1);
 """
@@ -401,7 +401,7 @@ _update_file_entry = """
         file
     SET
         md5 = ?,
-        inode = ?,
+        inode_mod = ?,
         found = 1
     WHERE
         id = ?
@@ -610,7 +610,7 @@ def get_db(create=False):
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     path BLOB,
                     md5 BLOB,
-                    inode INTEGER,
+                    inode_mod INTEGER,
                     found INTEGER DEFAULT 1,
                     encoding TEXT
                 );
@@ -800,20 +800,20 @@ def index_file(db, file_path, update = False):
         if not update:
             print("%s: not a plain file, skipping" % (file_path,))
         return
-    inode      = stat_res[stat.ST_INO]
-    old_inode  = None
-    old_md5    = None
-    file_      = None
-    cfile_path = path_compress(file_path, db)
+    inode_mod     = (stat_res[stat.ST_INO] * stat_res[stat.ST_MTIME]) % 2 ** 62
+    old_inode_mod = None
+    old_md5       = None
+    file_         = None
+    cfile_path    = path_compress(file_path, db)
     with con:
         res = con.execute(_find_file, (cfile_path,)).fetchall()
         if res:
             file_     = res[0][0]
-            old_inode = res[0][1]
+            old_inode_mod = res[0][1]
             old_md5   = res[0][2]
-    if old_inode != inode:
+    if old_inode_mod != inode_mod:
         do_index, file_ = check_file(
-            con, file_, file_path, cfile_path, inode, old_md5
+            con, file_, file_path, cfile_path, inode_mod, old_md5
         )
         if not do_index:
             return
@@ -826,7 +826,7 @@ def index_file(db, file_path, update = False):
             con.execute(_mark_found, (cfile_path,))
 
 
-def check_file(con, file_, file_path, cfile_path, inode, old_md5):
+def check_file(con, file_, file_path, cfile_path, inode_mod, old_md5):
     global _do_second_pass
     md5sum = md5(file_path)
     with con:
@@ -847,11 +847,11 @@ def check_file(con, file_, file_path, cfile_path, inode, old_md5):
         if file_ is None:
             cur = con.cursor()
             cur.execute(
-                _create_new_file_entry, (cfile_path, md5sum, inode)
+                _create_new_file_entry, (cfile_path, md5sum, inode_mod)
             )
             file_ = cur.lastrowid
         else:
-            con.execute(_update_file_entry, (md5sum, inode, file_))
+            con.execute(_update_file_entry, (md5sum, inode_mod, file_))
         if duplicated:
             if not _args.update:
                 if md5sum == old_md5:
@@ -1279,7 +1279,8 @@ def main(argv=None):
     )
     parser.add_argument(
         '--clear-inodes',
-        help='reset all inodes, will cause finja to rescan everything',
+        help='reset all inodes and modification date, '
+             'will cause finja to rescan everything',
         action='store_true',
     )
     if six.PY2:
