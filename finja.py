@@ -312,6 +312,12 @@ _clear_found_files = """
     SET found = 0
 """
 
+_clear_inodes = """
+    UPDATE
+        file
+    SET inode = null
+"""
+
 _delete_missing_indexes = """
     DELETE FROM
         finja
@@ -732,7 +738,10 @@ def index():
 def do_index(db, update=False):
     # Reindexing duplicates that have changed is a two pass process
     global _do_second_pass
-    interpunct = get_key(DatabaseKey.INTERPUNCT, db[0])
+    con = db[0]
+    if _args.clear_inodes:
+        con.execute(_clear_inodes)
+    interpunct = get_key(DatabaseKey.INTERPUNCT, con)
     prepare_regex(interpunct)
     _do_second_pass = False
     do_index_pass(db, update)
@@ -1266,6 +1275,11 @@ def main(argv=None):
         '--less-memory',
         '-l',
         help='use less memory',
+        action='store_true',
+    )
+    parser.add_argument(
+        '--clear-inodes',
+        help='reset all inodes, will cause finja to rescan everything',
         action='store_true',
     )
     if six.PY2:
