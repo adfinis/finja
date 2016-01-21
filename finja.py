@@ -28,7 +28,6 @@ if six.PY2:
         writer = codecs.getwriter("UTF-8")
         sys.stdout = writer(sys.stdout)
 
-_pgrs_last_char  = ""
 _pgrs_last_pos   = 1289  # Only evil prime number work
 _pgrs_last_time  = 0
 _pgrs_rotation   = [
@@ -209,27 +208,24 @@ def md5(fname):
 
 # Progress
 
-def progress(char=' ', flush=True):
+def progress(flush=True):
     """Write progress to stdout if needed"""
     global _pgrs_last_pos
-    global _pgrs_last_char
     global _pgrs_last_time
-    if _pgrs_last_char != char:  # noqa
-        sys.stdout.write(char)
-        _pgrs_last_char = char  # noqa
-    else:
-        now = time.time()
-        if (now - _pgrs_last_time) < 0.16:  # noqa
-            return
-        _pgrs_last_time = now  # noqa
-        _pgrs_last_pos += 1  # noqa
-        pos1 = _pgrs_last_pos % _pgrs_mod1
-        pos2 = min(_pgrs_last_pos % _pgrs_mod2, 2)
-        sys.stdout.write("%s%s" % (
-            _pgrs_rotation[1][pos2],
-            _pgrs_rotation[0][pos1]
-        ))
-        sys.stdout.write("\b\b\b\b\b\b\b")
+    if _args.raw:
+        return
+    now = time.time()
+    if (now - _pgrs_last_time) < 0.16:  # noqa
+        return
+    _pgrs_last_time = now  # noqa
+    _pgrs_last_pos += 1  # noqa
+    pos1 = _pgrs_last_pos % _pgrs_mod1
+    pos2 = min(_pgrs_last_pos % _pgrs_mod2, 2)
+    sys.stdout.write(" %s%s" % (
+        _pgrs_rotation[1][pos2],
+        _pgrs_rotation[0][pos1]
+    ))
+    sys.stdout.write("\b\b\b\b\b\b\b\b")
     if flush:  # pragma: no cover
         sys.stdout.flush()
 
@@ -1005,9 +1001,9 @@ def search(
     if update:
         do_index(db, update=True)
     if _args.vacuum:
-        con.set_progress_handler(progress, 1000000)
+        con.set_progress_handler(progress, 100000)
         con.execute("VACUUM;")
-        con.set_progress_handler(None, 1000000)
+        con.set_progress_handler(None, 100000)
     if not search:
         return
     res = []
@@ -1023,7 +1019,7 @@ def search(
         con.set_progress_handler(progress, 1000000)
         res = con.execute(query, args).fetchall()
         con.set_progress_handler(None, 1000000)
-        sys.stdout.write("\b\b\b\b\b\b\b")
+        sys.stdout.write("\b\b\b\b\b\b\b\b")
     if file_mode:
         for match in sorted(
                 res,
