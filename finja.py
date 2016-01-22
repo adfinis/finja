@@ -357,6 +357,24 @@ _delete_missing_files = """
         )
 """
 
+_delete_free_tokens = """
+    DELETE FROM
+        token
+    WHERE
+        id IN (
+            SELECT
+                t.id
+            FROM
+                token as t
+            LEFT JOIN
+                finja as f
+            ON
+                t.id = f.token_id
+            WHERE
+                f.token_id is null
+        )
+"""
+
 _find_file = """
     SELECT
         id,
@@ -1010,6 +1028,7 @@ def search(
         do_index(db, update=True)
     if _args.vacuum:
         con.set_progress_handler(progress, 100000)
+        con.execute(_delete_free_tokens)
         con.execute("VACUUM;")
         con.set_progress_handler(None, 100000)
     if not search:
