@@ -74,6 +74,12 @@ directories and files are tokens too: no partial matches.
 
    finja -p spamfolder gold
 
+Cleanup free (unused) tokens and rebuild the database.
+
+.. code:: bash
+
+   finja --vacuum
+
 Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
