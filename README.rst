@@ -67,8 +67,7 @@ Index git files only.
    git ls-tree -r --name-only master > FINJA.lst
    finja -i
 
-Filter unwanted output by path element (directory or file). Be aware:
-directories and files are tokens too: no partial matches.
+Filter unwanted output by path.
 
 .. code:: bash
 
