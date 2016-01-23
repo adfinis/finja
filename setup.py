@@ -9,7 +9,7 @@ with open('README.rst', 'r') as f:
 setup(
     name = "finja",
     version = "0.1",
-    py_modules = ["finja", "finja_shlex"],
+    py_modules = ["finja"],
     entry_points = {
         'console_scripts': [
             "finja=finja:main",

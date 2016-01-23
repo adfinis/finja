@@ -15,6 +15,8 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
+_database_version = 1
+
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
 if six.PY2:
@@ -154,6 +156,7 @@ def prepare_regex(interpunct=False):
 class DatabaseKey(object):
     INTERPUNCT = 0
     MAX_ID     = 1
+    VERSION    = 2
 
 
 def cleanup(string):
@@ -545,7 +548,11 @@ def get_db(create=False):
             CREATE INDEX key_value_key_idx ON key_value (key);
         """)
         set_key(DatabaseKey.INTERPUNCT, _args.interpunct, connection)
+        set_key(DatabaseKey.VERSION, _database_version, connection)
     connection.commit()
+    version = get_key(DatabaseKey.VERSION, connection)
+    if version != _database_version:
+        raise ValueError("Database version not correct. Please reindex")
     _db_cache = (
         connection,
         TokenDict(connection),
@@ -665,7 +672,7 @@ def do_index_pass(db, update=False):
     if os.path.exists("FINJA.lst"):
         with codecs.open("FINJA.lst", "r", encoding="UTF-8") as f:
             for path in f.readlines():
-                file_path = path.strip()
+                file_path = os.path.relpath(path.strip())
                 index_file(db, file_path, update)
     else:
         for dirpath, _, filenames in os.walk("."):
@@ -676,10 +683,10 @@ def do_index_pass(db, update=False):
                 if '.' in filename:
                     ext = filename.split(os.path.extsep)[-1].lower()
                 if ext not in _ignore_ext:
-                    file_path = os.path.join(
+                    file_path = os.path.relpath(os.path.join(
                         dirpath,
                         filename
-                    )
+                    ))
                     index_file(db, file_path, update)
     with con:
         res = con.execute(_find_missing_files).fetchall()
@@ -964,6 +971,8 @@ def sort_format_result(db, res_set):
         with codecs.open(path, "r", encoding=encoding) as f:
             if not _args.raw:
                 new_dirname = os.path.dirname(path)
+                if not new_dirname:
+                    new_dirname = "."
                 if dirname != new_dirname:
                     dirname = new_dirname
                     print("%s:" % os.path.relpath(dirname, _cwd))
@@ -1188,6 +1197,6 @@ def main(argv=None):
         file_mode=args.file_mode,
         update=args.update
     )
+    get_db()[0].close()
     if not _index_count and not args.search:
-        get_db()[0].close()
         sys.exit(1)
