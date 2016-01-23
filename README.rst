@@ -79,6 +79,12 @@ Cleanup free (unused) tokens and rebuild the database.
 
    finja --vacuum
 
+If there are some badly formatted files that seriously cramp your style.
+
+.. code:: bash
+
+   finja readlines for | cut -c -`tput cols`
+
 Thats it and it works.
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
