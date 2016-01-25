@@ -1,7 +1,5 @@
 # coding=UTF-8
 import argparse
-import array
-import binascii
 import codecs
 import hashlib
 import math
@@ -9,7 +7,6 @@ import os
 import re
 import sqlite3
 import stat
-import struct
 import sys
 import time
 import pickle
@@ -17,6 +14,8 @@ import pickle
 import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
+
+_database_version = 1
 
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
@@ -60,35 +59,6 @@ _positive_regex = [
 ]
 
 _split_regex = []
-
-
-def prepare_regex(interpunct=False):
-    global _split_regex
-    interpunct_split = ""
-    if interpunct:
-        interpunct_split = _interpunct_split
-    _split_regex = []
-    _split_regex.append(re.compile("[%s]" % _whitespace_split))
-    _split_regex.append(re.compile("[.\_\-%s%s%s]" % (
-        _semantic_split,
-        _whitespace_split,
-        interpunct_split
-    )))
-    _split_regex.append(re.compile("[.\-%s%s%s]" % (
-        _semantic_split,
-        _whitespace_split,
-        interpunct_split
-    )))
-    _split_regex.append(re.compile("[.\_%s%s%s]" % (
-        _semantic_split,
-        _whitespace_split,
-        interpunct_split
-    )))
-    _split_regex.append(re.compile("[%s%s%s]" % (
-        _semantic_split,
-        _whitespace_split,
-        interpunct_split
-    )))
 
 _cache_size = 1024 * 1024
 
@@ -147,7 +117,40 @@ _args = None
 
 _index_count = 0
 
-_python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
+_cwd = os.getcwd()
+
+_finja_path = None
+
+# Regex
+
+
+def prepare_regex(interpunct=False):
+    global _split_regex
+    interpunct_split = ""
+    if interpunct:
+        interpunct_split = _interpunct_split
+    _split_regex = []
+    _split_regex.append(re.compile("[%s]" % _whitespace_split))
+    _split_regex.append(re.compile("[.\_\-%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[.\-%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[.\_%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
+    _split_regex.append(re.compile("[%s%s%s]" % (
+        _semantic_split,
+        _whitespace_split,
+        interpunct_split
+    )))
 
 # Database Keys
 
@@ -155,36 +158,7 @@ _python_26 = sys.version_info[0] == 2 and sys.version_info[1] < 7
 class DatabaseKey(object):
     INTERPUNCT = 0
     MAX_ID     = 1
-
-# Conversion functions
-
-
-if _python_26:
-    def path_compress(path, db):
-        return path
-
-    def path_decompress(path, db):
-        return path
-else:
-    def path_compress(path, db):
-        path_token_dict = db[2]
-        path_arr   = path.split(os.sep)
-        path_ids   = array.array('I')
-        path_ids.extend([path_token_dict[x] for x in path_arr])
-        if six.PY2:
-            return path_ids.tostring()
-        else:
-            return path_ids.tobytes()
-
-    def path_decompress(path, db):
-        path_string_dict = db[3]
-        path_arr    = array.array('I')
-        if six.PY2:
-            path_arr.fromstring(path)
-        else:
-            path_arr.frombytes(path)
-        path_strs = [path_string_dict[x] for x in path_arr]
-        return os.sep.join(path_strs)
+    VERSION    = 2
 
 
 def cleanup(string):
@@ -230,27 +204,11 @@ def progress(flush=True):
 
 # SQL Queries
 
-_token_max_id = """
-    SELECT
-        max(id)
-    FROM
-        token
-"""
-
 _string_to_token = """
     SELECT
         id
     FROM
         token
-    WHERE
-        string = ?;
-"""
-
-_string_to_path_token = """
-    SELECT
-        id
-    FROM
-        path_token
     WHERE
         string = ?;
 """
@@ -262,13 +220,6 @@ _insert_token = """
         (?, ?);
 """
 
-_insert_path_token = """
-    INSERT INTO
-        path_token(string)
-    VALUES
-        (?);
-"""
-
 _token_cardinality = """
     SELECT
         COUNT(id) count
@@ -276,16 +227,6 @@ _token_cardinality = """
         finja
     WHERE
         token_id = ?
-"""
-
-
-_path_token_to_string = """
-    SELECT
-        string
-    FROM
-        path_token
-    WHERE
-        id = ?;
 """
 
 _search_query = """
@@ -354,6 +295,24 @@ _delete_missing_files = """
                 f.md5 = ff.md5
             WHERE
                 ff.found = 0
+        )
+"""
+
+_delete_free_tokens = """
+    DELETE FROM
+        token
+    WHERE
+        id IN (
+            SELECT
+                t.id
+            FROM
+                token as t
+            LEFT JOIN
+                finja as f
+            ON
+                t.id = f.token_id
+            WHERE
+                f.token_id is null
         )
 """
 
@@ -471,24 +430,6 @@ _get_key = """
 # Cache classes
 
 
-class PathTokenDict(dict):
-    def __init__(self, db, *args, **kwargs):
-        super(PathTokenDict, self).__init__(*args, **kwargs)
-        self.db = db
-
-    def __missing__(self, key):
-        with self.db:
-            cur = self.db.cursor()
-            res = cur.execute(_string_to_path_token, (key,)).fetchall()
-            if res:
-                ret = res[0][0]
-            else:
-                cur.execute(_insert_path_token, (key,))
-                ret = cur.lastrowid
-        self[key] = ret
-        return ret
-
-
 class TokenDict(dict):
     def __init__(self, db, *args, **kwargs):
         super(TokenDict, self).__init__(*args, **kwargs)
@@ -513,28 +454,14 @@ class TokenDict(dict):
         return ret
 
     def commit(self):
+        if self.token_id >= 2 ** 63 - 1:
+            ValueError("Out of token-space. Delete the database and reindex")
         bulk_insert = self.bulk_insert
         new = len(bulk_insert)
         self.db.executemany(_insert_token, bulk_insert)
         self.bulk_insert = []
         set_key(DatabaseKey.MAX_ID, self.token_id, con=self.db)
         return new
-
-
-class PathStringDict(dict):
-    def __init__(self, db, *args, **kwargs):
-        super(PathStringDict, self).__init__(*args, **kwargs)
-        self.db = db
-
-    def __missing__(self, key):
-        with self.db:
-            cur = self.db.cursor()
-            res = cur.execute(_path_token_to_string, (key,)).fetchall()
-        if not res:
-            raise KeyError("Token not found")
-        ret = res[0][0]
-        self[key] = ret
-        return ret
 
 # DB functions
 
@@ -594,19 +521,9 @@ def get_db(create=False):
         """)
         connection.execute("""
             CREATE TABLE
-                path_token(
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    string TEXT
-                );
-        """)
-        connection.execute("""
-            CREATE INDEX path_token_string_idx ON path_token (string);
-        """)
-        connection.execute("""
-            CREATE TABLE
                 file(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    path BLOB,
+                    path TEXT,
                     md5 BLOB,
                     inode_mod INTEGER,
                     found INTEGER DEFAULT 1,
@@ -633,12 +550,14 @@ def get_db(create=False):
             CREATE INDEX key_value_key_idx ON key_value (key);
         """)
         set_key(DatabaseKey.INTERPUNCT, _args.interpunct, connection)
+        set_key(DatabaseKey.VERSION, _database_version, connection)
     connection.commit()
+    version = get_key(DatabaseKey.VERSION, connection)
+    if version != _database_version:
+        raise ValueError("Database version not correct. Please reindex")
     _db_cache = (
         connection,
         TokenDict(connection),
-        PathTokenDict(connection),
-        PathStringDict(connection),
     )
     return _db_cache
 
@@ -679,10 +598,7 @@ def gen_search_query(pignore, file_mode, terms=1):
     for x in range(terms - 1):
         term_list.append("AND i{0}.token_id = ?".format(x))
     ignore_list = []
-    if _python_26:
-        filter_ = "AND f.path NOT LIKE ?"
-    else:
-        filter_ = "AND hex(f.path) NOT LIKE ?"
+    filter_ = "AND f.path NOT LIKE ?"
     for ignore in pignore:
         ignore_list.append(filter_)
     return _search_query.format(
@@ -708,18 +624,20 @@ def get_line(file_path, lineno, file_):
                     line = f.readline()
     except UnicodeDecodeError:
         pass
-    except IOError:
+    except (IOError, OSError):
         line = "!! File not found "
     return line
 
 
 def find_finja():
+    global _finja_path
     cwd = os.path.abspath(".")
     lcwd = cwd.split(os.sep)
     while lcwd:
         cwd = os.sep.join(lcwd)
         check = os.path.join(cwd, "FINJA")
         if os.path.isfile(check):
+            _finja_path = cwd  # noqa
             return cwd
         lcwd.pop()
     raise ValueError("Could not find FINJA")
@@ -758,7 +676,7 @@ def do_index_pass(db, update=False):
     if os.path.exists("FINJA.lst"):
         with codecs.open("FINJA.lst", "r", encoding="UTF-8") as f:
             for path in f.readlines():
-                file_path = os.path.abspath(path.strip())
+                file_path = os.path.relpath(path.strip())
                 index_file(db, file_path, update)
     else:
         for dirpath, _, filenames in os.walk("."):
@@ -769,7 +687,7 @@ def do_index_pass(db, update=False):
                 if '.' in filename:
                     ext = filename.split(os.path.extsep)[-1].lower()
                 if ext not in _ignore_ext:
-                    file_path = os.path.abspath(os.path.join(
+                    file_path = os.path.relpath(os.path.join(
                         dirpath,
                         filename
                     ))
@@ -802,29 +720,28 @@ def index_file(db, file_path, update = False):
     old_inode_mod = None
     old_md5       = None
     file_         = None
-    cfile_path    = path_compress(file_path, db)
     with con:
-        res = con.execute(_find_file, (cfile_path,)).fetchall()
+        res = con.execute(_find_file, (file_path,)).fetchall()
         if res:
             file_         = res[0][0]
             old_inode_mod = res[0][1]
             old_md5       = res[0][2]
     if old_inode_mod != inode_mod:
         do_index, file_ = check_file(
-            con, file_, file_path, cfile_path, inode_mod, old_md5
+            con, file_, file_path, inode_mod, old_md5, update
         )
         if not do_index:
             return
         encoding = read_index(db, file_, file_path, update)
-        con.execute(_update_file_info, (encoding, cfile_path))
+        con.execute(_update_file_info, (encoding, file_path))
     else:
         if not update:
             print("%s: uptodate" % (file_path,))
         with con:
-            con.execute(_mark_found, (cfile_path,))
+            con.execute(_mark_found, (file_path,))
 
 
-def check_file(con, file_, file_path, cfile_path, inode_mod, old_md5):
+def check_file(con, file_, file_path, inode_mod, old_md5, update=False):
     global _do_second_pass
     md5sum = md5(file_path)
     with con:
@@ -845,13 +762,13 @@ def check_file(con, file_, file_path, cfile_path, inode_mod, old_md5):
         if file_ is None:
             cur = con.cursor()
             cur.execute(
-                _create_new_file_entry, (cfile_path, md5sum, inode_mod)
+                _create_new_file_entry, (file_path, md5sum, inode_mod)
             )
             file_ = cur.lastrowid
         else:
             con.execute(_update_file_entry, (md5sum, inode_mod, file_))
         if duplicated:
-            if not _args.update:
+            if not update:
                 if md5sum == old_md5:
                     print("%s: not changed, skipping" % (file_path,))
                 else:
@@ -1005,37 +922,36 @@ def search(
     db              = get_db(create = False)
     con             = db[0]
     token_dict      = db[1]
-    path_token_dict = db[2]
     if update:
         do_index(db, update=True)
     if _args.vacuum:
         con.set_progress_handler(progress, 100000)
+        con.execute(_delete_free_tokens)
         con.execute("VACUUM;")
         con.set_progress_handler(None, 100000)
     if not search:
         return
     res = []
     with con:
-        bignore = prepare_ignores(pignore, path_token_dict)
-        query = gen_search_query(bignore, file_mode, len(search))
+        pignore = ["%{}%".format(x) for x in pignore]
+        query = gen_search_query(pignore, file_mode, len(search))
         search_tokens = order_search_terms([
             token_dict[cleanup(x)] for x in search
         ])
         args = []
         args.extend(search_tokens)
-        args.extend(bignore)
+        args.extend(pignore)
         con.set_progress_handler(progress, 1000000)
         res = con.execute(query, args).fetchall()
         con.set_progress_handler(None, 1000000)
-        sys.stdout.write("\b\b\b\b\b\b\b\b")
+        if not _args.raw:
+            sys.stdout.write("\b\b\b\b\b\b\b\b")
     if file_mode:
         for match in sorted(
                 res,
                 key=lambda x: x[0],
-                reverse=True
         ):
-            path = path_decompress(match[0], db)
-            print(path)
+            print(os.path.relpath(match[0], _cwd))
             if not _args.raw:
                 display_duplicates(db, match[1])
     else:
@@ -1045,16 +961,9 @@ def search(
 def sort_format_result(db, res_set):
     dirname = None
     old_file = -1
-    res_set = [(
-        path_decompress(x[0], db),
-        x[1],
-        x[2],
-        x[3],
-    ) for x in res_set]
     for match in sorted(
             res_set,
-            key=lambda x: (x[0], -x[2]),
-            reverse=True
+            key=lambda x: (x[0], x[2]),
     ):
         file_ = match[1]
         if file_ != old_file and old_file != -1:
@@ -1062,20 +971,36 @@ def sort_format_result(db, res_set):
         old_file = file_
         path = match[0]
         encoding = match[3]
-        with codecs.open(path, "r", encoding=encoding) as f:
-            if not _args.raw:
-                new_dirname = os.path.dirname(path)
-                if dirname != new_dirname:
-                    dirname = new_dirname
-                    print("%s:" % dirname)
-                file_name = os.path.basename(path)
+        try:
+            with codecs.open(path, "r", encoding=encoding) as f:
+                if not _args.raw:
+                    new_dirname = os.path.dirname(path)
+                    if not new_dirname:
+                        new_dirname = "."
+                    if dirname != new_dirname:
+                        dirname = new_dirname
+                        print("%s:" % os.path.relpath(dirname, _cwd))
+                    file_name = os.path.basename(path)
+                else:
+                    file_name = path
+                context = _args.context
+                if context == 1 or _args.raw:
+                    display_no_context(f, match, path, file_name)
+                else:
+                    display_context(f, context, match, path, file_name)
+        except OSError:
+            if _args.raw:
+                print("%s\0%5d\0%s" % (
+                    os.path.abspath(path),
+                    match[2],
+                    "!! File not found "
+                ))
             else:
-                file_name = path
-            context = _args.context
-            if context == 1 or _args.raw:
-                display_no_context(f, match, path, file_name)
-            else:
-                display_context(f, context, match, path, file_name)
+                print("%s:%5d:%s" % (
+                    os.path.relpath(path, _cwd),
+                    match[2],
+                    "!! File not found "
+                ))
     display_duplicates(db, old_file)
 
 
@@ -1112,7 +1037,7 @@ def display_context(f, context, match, path, file_name):
 def display_no_context(f, match, path, file_name):
     if _args.raw:
         print("%s\0%5d\0%s" % (
-            file_name,
+            os.path.abspath(file_name),
             match[2],
             get_line(path, match[2], f)[:-1]
         ))
@@ -1124,25 +1049,6 @@ def display_no_context(f, match, path, file_name):
         ))
 
 
-def prepare_ignores(pignore, path_token_dict):
-    if _python_26:
-        bignore = []
-        for ignore in pignore:
-            bignore.append("%{0}%".format(ignore))
-    else:
-        bignore = []
-        for ignore in pignore:
-            tignore = path_token_dict[ignore]
-            bignore.append(
-                "%{0}%".format(
-                    binascii.b2a_hex(
-                        struct.pack('I', tignore)
-                    ).upper().decode("ASCII")
-                )
-            )
-    return bignore
-
-
 def display_duplicates(db, file_):
     if _args.raw:
         return
@@ -1151,34 +1057,36 @@ def display_duplicates(db, file_):
         res = con.execute(_find_duplicates, (file_, file_)).fetchall()
         if res:
             print("duplicates:")
-            for cfile_path in res:
-                print("\t%s" % path_decompress(cfile_path[0], db))
+            for file_path in res:
+                print("\t%s" % os.path.relpath(file_path[0], _cwd))
 
 # Main functions (also for helpers)
 
 
 def col_main():
     for line in sys.stdin.readlines():
+        split = line.split('\0')
+        split[0] = os.path.relpath(split[0], _cwd)
         sys.stdout.write(
-            ":".join(line.split('\0'))
+            ":".join(split)
         )
 
 
 def reduplicate(db, last_file_path, to_duplicate):
     con = db[0]
-    cfile_path = path_compress(last_file_path, db)
-    res = con.execute(_find_file, (cfile_path,)).fetchall()
+    res = con.execute(
+        _find_file, (os.path.relpath(last_file_path),)
+    ).fetchall()
     if res:
         file_     = res[0][0]
         with con:
             dups = con.execute(
                 _find_duplicates, (file_, file_)
             ).fetchall()
-            for dup_cfile_path in dups:
-                dup_file_path = path_decompress(dup_cfile_path[0], db)
+            for dup_file_path in dups:
                 for dup in to_duplicate:
                     sys.stdout.write("%s\0%s\0%s" % (
-                        dup_file_path,
+                        os.path.abspath(dup_file_path[0]),
                         dup[0],
                         dup[1]
                     ))
@@ -1189,7 +1097,7 @@ def dup_main():
     os.chdir(finja)
     db = get_db()
     to_duplicate = []
-    last_file_path = ""
+    last_file_path = "."
     for line in sys.stdin.readlines():
         (
             file_path,
@@ -1197,6 +1105,8 @@ def dup_main():
             text
         ) = line.split('\0')
         if last_file_path != file_path:
+            if not last_file_path:
+                last_file_path = "."
             reduplicate(db, last_file_path, to_duplicate)
             to_duplicate = []
             last_file_path = file_path
@@ -1259,7 +1169,7 @@ def main(argv=None):
     parser.add_argument(
         '--pignore',
         '-p',
-        help='ignore path that contain one of the elements. Can be repeated',
+        help='ignore path. Can be repeated',
         nargs='?',
         action='append'
     )
@@ -1310,6 +1220,6 @@ def main(argv=None):
         file_mode=args.file_mode,
         update=args.update
     )
+    get_db()[0].close()
     if not _index_count and not args.search:
-        get_db()[0].close()
         sys.exit(1)
