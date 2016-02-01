@@ -988,7 +988,7 @@ def sort_format_result(db, res_set):
                     display_no_context(f, match, path, file_name)
                 else:
                     display_context(f, context, match, path, file_name)
-        except OSError:
+        except (OSError, IOError):
             if _args.raw:
                 print("%s\0%5d\0%s" % (
                     os.path.abspath(path),
