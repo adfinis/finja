@@ -68,6 +68,15 @@ _do_second_pass = False
 
 _ignore_dir = set([
     ".local",
+    ".gnupg",
+    ".kde",
+    ".config"
+    ".dbus",
+    ".pyenv",
+    ".pip",
+    ".ssh",
+    ".subversion",
+    ".nvimlog",
     ".hg",
     ".git",
     ".svn",
