@@ -70,7 +70,8 @@ _ignore_dir = set([
     ".local",
     ".gnupg",
     ".kde",
-    ".config"
+    ".config",
+    ".vagrant",
     ".dbus",
     ".pyenv",
     ".pip",
@@ -88,7 +89,6 @@ _ignore_dir = set([
 # Very common binary files and annoying text-files like svg
 
 _ignore_ext = set([
-    "nvimlog",
     "svg",
     "pyc",
     "ai",
