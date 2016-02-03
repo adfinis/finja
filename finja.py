@@ -67,6 +67,7 @@ _db_cache = None
 _do_second_pass = False
 
 _ignore_dir = set([
+    ".local",
     ".hg",
     ".git",
     ".svn",
