@@ -67,23 +67,8 @@ _db_cache = None
 _do_second_pass = False
 
 _ignore_dir = set([
-    ".local",
-    ".gnupg",
-    ".kde",
-    ".config",
-    ".vagrant",
-    ".dbus",
-    ".pyenv",
-    ".pip",
-    ".ssh",
-    ".subversion",
-    ".hg",
-    ".git",
-    ".svn",
-    ".bzr",
-    ".hypothesis",
     "__pycache__",
-    ".cache",
+    "__MACOSX",
 ])
 
 # Very common binary files and annoying text-files like svg
@@ -677,6 +662,26 @@ def do_index(db, update=False):
         do_index_pass(db, True)
 
 
+def is_dotfile(path):
+    """
+    Return true if any path component of the given path starts with a dot.
+
+    Note that single-dot paths ("./") do not count as such.
+
+    >>> is_dotfile('./foo/bar/baz')
+    False
+    >>> is_dotfile('./foo/.bar/baz')
+    True
+
+    """
+    return any([
+        p.startswith('.')
+        for p
+        in path.split(os.sep)
+        if p not in ('..', '.')
+    ])
+
+
 def do_index_pass(db, update=False):
     global _do_second_pass
     con = db[0]
@@ -690,9 +695,16 @@ def do_index_pass(db, update=False):
                 index_file(db, file_path, update)
     else:
         for dirpath, _, filenames in os.walk("."):
+            if is_dotfile(dirpath):
+                # Skip "hidden" dirs
+                continue
+
             if set(dirpath.split(os.sep)).intersection(_ignore_dir):
                 continue
             for filename in filenames:
+                if is_dotfile(filename):
+                    # Skip "hidden" files
+                    continue
                 ext = None
                 if '.' in filename:
                     ext = filename.split(os.path.extsep)[-1].lower()
