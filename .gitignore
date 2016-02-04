@@ -2,3 +2,5 @@
 /FINJA
 /finja.egg-info/
 *.pyc
+/build
+/dist
