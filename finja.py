@@ -106,6 +106,10 @@ _ignore_ext = set([
     "tiff",
     "pdf",
     "jar",
+    "so",
+    "ko",
+    "o",
+    "bin",
 ])
 
 _args = None
