@@ -706,8 +706,8 @@ def do_index_pass(db, update=False):
             if set(dirpath.split(os.sep)).intersection(_ignore_dir):
                 continue
             for filename in filenames:
-                if is_dotfile(filename):
-                    # Skip "hidden" files
+                if is_dotfile(filename) or filename in ('FINJA', 'FINJA.lst'):
+                    # Skip "hidden" and index files
                     continue
                 ext = None
                 if '.' in filename:
