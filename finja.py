@@ -492,8 +492,6 @@ def get_db(create=False):
         raise ValueError("Could not find FINJA")
     connection = sqlite3.connect("FINJA")  # noqa
     connection.execute('PRAGMA encoding = "UTF-8";')
-    if six.PY2:
-        connection.text_factory = str
     if not exists:
         # We use inline queries here
         connection.execute("""
