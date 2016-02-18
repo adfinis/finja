@@ -15,7 +15,7 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
-_database_version = 1
+_database_version = 2
 
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
@@ -166,7 +166,11 @@ def cleanup(string):
         return None
     if len(string) <= 16:
         return string.lower()
-    return hashlib.md5(string.lower().encode("UTF-8")).digest()
+    key = hashlib.md5(string.lower().encode("UTF-8")).digest()
+    if six.PY2:
+        return sqlite3.Binary(key)
+    else:
+        return key
 
 
 def md5(fname):
@@ -174,7 +178,10 @@ def md5(fname):
     with open(fname, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
             hash.update(chunk)
-    return hash.digest()
+    if six.PY2:
+        return sqlite3.Binary(hash.digest())
+    else:
+        return hash.digest()
 
 
 # Progress
@@ -248,6 +255,7 @@ _search_query = """
         i.token_id=?
     {terms}
     {ignore}
+    {file_mode_hint}
 """
 
 _clear_found_files = """
@@ -581,6 +589,7 @@ def gen_search_query(pignore, file_mode, terms=1):
     join_list = []
     term_list = []
     if file_mode:
+        file_mode_hint = "AND i.line = -1"
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
@@ -589,6 +598,7 @@ def gen_search_query(pignore, file_mode, terms=1):
                     i.file_id == i{0}.file_id
             """.format(x))
     else:
+        file_mode_hint = "AND i.line != -1"
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
@@ -608,7 +618,8 @@ def gen_search_query(pignore, file_mode, terms=1):
         projection = projection,
         ignore = "\n".join(ignore_list),
         finja_joins = "\n".join(join_list),
-        terms = "\n".join(term_list)
+        terms = "\n".join(term_list),
+        file_mode_hint = file_mode_hint,
     )
 
 # OS access
@@ -734,6 +745,8 @@ def do_index_pass(db, update=False):
 
 def index_file(db, file_path, update = False):
     global _index_count
+    if six.PY2:
+        file_path = unicode(file_path, encoding="UTF-8")
     con        = db[0]
     # Bad symlinks etc.
     try:
@@ -811,7 +824,7 @@ def read_index(db, file_, file_path, update = False):
     global _index_count
     con          = db[0]
     token_dict   = db[1]
-    encoding = "UTF-8"
+    encoding     = "UTF-8"
     if is_binary(file_path):
         if not update:
             print("%s: is binary, skipping" % (file_path,))
@@ -845,6 +858,9 @@ def read_index(db, file_, file_path, update = False):
                 ))
                 inserts.clear()
                 return encoding
+        tokens = set([x[0] for x in inserts])
+        for token in tokens:
+            inserts.add((token, file_, -1))
         with con:
             new = token_dict.commit()
             con.execute(_clear_existing_index, (file_,))
