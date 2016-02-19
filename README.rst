@@ -52,13 +52,13 @@ Get reduplicated raw human readable output.
 
 .. code:: bash
 
-   finja -r eatmydata | finjadup | finjacol
+   finja -r stuff | finjadup | finjacol
 
 Get reduplicated raw output.
 
 .. code:: bash
 
-   finja -r eatmydata | finjadup
+   finja -r stuff | finjadup
 
 Index git files only.
 
