@@ -231,19 +231,13 @@ _insert_token = """
         (?, ?);
 """
 
-_file_cardinality = """
+_token_cardinality = """
     SELECT
-        count(*)
-    FROM (
-        SELECT
-            file_id
-        FROM
-            finja
-        WHERE
-            token_id = ?
-        GROUP BY
-            file_id
-    )
+        COUNT(id) count
+    FROM
+        finja
+    WHERE
+        token_id = ?
 """
 
 _search_query = """
@@ -963,7 +957,7 @@ def search_term_cardinality(term_id):
     con        = db[0]
 
     curs = con.cursor()
-    res = curs.execute(_file_cardinality, [term_id]).fetchall()
+    res = curs.execute(_token_cardinality, [term_id]).fetchall()
     return res[0][0]
 
 
