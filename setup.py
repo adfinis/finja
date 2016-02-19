@@ -8,7 +8,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name = "finja",
-    version = "1.0.1",
+    version = "1.0.2",
     py_modules = ["finja"],
     entry_points = {
         'console_scripts': [

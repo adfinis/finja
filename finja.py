@@ -15,7 +15,7 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
-_database_version = 2
+_database_version = 3
 
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
@@ -523,6 +523,9 @@ def get_db(create=False):
         """)
         connection.execute("""
             CREATE INDEX finja_file_idx ON finja (file_id);
+        """)
+        connection.execute("""
+            CREATE INDEX finja_line_idx ON finja (line);
         """)
         connection.execute("""
             CREATE TABLE
