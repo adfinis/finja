@@ -74,7 +74,10 @@ _ignore_dir = set([
 # Very common binary files and annoying text-files like svg
 
 _ignore_ext = set([
+    "log",
     "svg",
+    "vmdk",
+    "vdi",
     "pyc",
     "ai",
     "ps",
@@ -481,6 +484,8 @@ class TokenDict(dict):
 
 def set_key(key, value, con=None):
     bin_value = pickle.dumps(value)
+    if six.PY2:
+        bin_value = sqlite3.Binary(bin_value)
     if not con:
         con = get_db()[0]
     with con:
@@ -726,8 +731,14 @@ def do_index_pass(db, update=False):
                     continue
                 ext = None
                 if '.' in filename:
-                    ext = filename.split(os.path.extsep)[-1].lower()
-                if ext not in _ignore_ext:
+                    split = filename.split(os.path.extsep)
+                    ext = split[-1].lower()
+                    ext2 = None
+                    if len(split) > 2:
+                        ext2 = split[-2].lower()
+                        if len(ext2) > 4:
+                            ext2 = None
+                if ext not in _ignore_ext and ext2 not in _ignore_ext:
                     file_path = os.path.relpath(os.path.join(
                         dirpath,
                         filename
@@ -837,7 +848,7 @@ def read_index(db, file_, file_path, update = False):
         try:
             inserts      = set()
             insert_count = parse_file(db, file_, file_path, inserts, encoding)
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as e:
             try:
                 with open(file_path, "rb") as f:
                     detector = UniversalDetector()
@@ -847,6 +858,8 @@ def read_index(db, file_, file_path, update = False):
                             break
                     detector.close()
                     encoding = detector.result['encoding']
+                if not encoding:
+                    raise e
                 inserts      = set()
                 insert_count = parse_file(
                     db, file_, file_path, inserts, encoding
