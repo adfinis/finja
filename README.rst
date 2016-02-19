@@ -94,13 +94,13 @@ Installation
 ============
 
 If you're using Arch Linux, there's an AUR package here:
-https://aur.archlinux.org/packages/finja-git/
+https://aur.archlinux.org/packages/finja/
 
 On other platforms, use python's package manager, pip:
 
 .. code:: bash
 
-   pip install -U git+https://github.com/adfinis-sygroup/finja.git
+   pip install -U finja
 
 Why?
 ====
