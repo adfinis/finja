@@ -1,0 +1,31 @@
+Source: finja
+Section: python
+Priority: optional
+Maintainer: Jean-Louis Fuchs - Adfinis-SyGroup <jean-louis.fuchs@adfinis-sygroup.ch>
+Uploaders: Jean-Louis Fuchs - Adfinis-SyGroup <jean-louis.fuchs@adfinis-sygroup.ch>
+Build-Depends: debhelper (>= 9), dh-python, python-all (>= 2.6.6-3~), python3-all,
+ python-setuptools, python3-setuptools
+Standards-Version: 3.9.4
+Homepage: https://github.com/adfinis-sygroup/finja
+Vcs-Git: https://github.com/adfinis-sygroup/finja
+Vcs-Browser: https://github.com/adfinis-sygroup/finja
+
+Package: python-finja
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-pkg-resources
+Description: Finja is a generic indexer
+ Unlike many of the great alternatives to finja, finja is generic. It doesn't
+ know what it is indexing. Finja achieves good indexing quality by doing
+ multiple passes with different tokenization methods and splitting character
+ lists. Therefore it is slower and has a bigger index than non-generic indexers,
+ but it just indexes your stuff and won't miss any files it doesn't know about.
+
+Package: python3-finja
+Architecture: all
+Depends: ${misc:Depends}, ${python3:Depends}, python3-pkg-resources
+Description: Finja is a generic indexer (Python 3 version)
+ Unlike many of the great alternatives to finja, finja is generic. It doesn't
+ know what it is indexing. Finja achieves good indexing quality by doing
+ multiple passes with different tokenization methods and splitting character
+ lists. Therefore it is slower and has a bigger index than non-generic indexers,
+ but it just indexes your stuff and won't miss any files it doesn't know about.
