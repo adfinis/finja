@@ -76,6 +76,8 @@ _ignore_dir = set([
 _ignore_ext = set([
     "log",
     "svg",
+    "hex",
+    "ihex",
     "vmdk",
     "vdi",
     "pyc",
