@@ -96,6 +96,11 @@ Installation
 If you're using Arch Linux, there's an AUR package here:
 https://aur.archlinux.org/packages/finja/
 
+If you're using Debian Jessie, there's a deb package here:
+
+http://1042.ch/finja/jessie/ (Do not install the python3 version it may
+segfault because of a bug in Python 3.4)
+
 On other platforms, use python's package manager, pip:
 
 .. code:: bash
