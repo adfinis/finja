@@ -8,7 +8,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name = "finja",
-    version = "0.1",
+    version = "1.0.1",
     py_modules = ["finja"],
     entry_points = {
         'console_scripts': [
@@ -31,7 +31,7 @@ setup(
     keywords = "code index find text open",
     url = "https://ganwell.github.io",
     classifiers = [
-        "Development Status :: 4 - Beta",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
         "Intended Audience :: Developers",
         "Intended Audience :: Information Technology",

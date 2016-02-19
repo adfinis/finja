@@ -731,11 +731,11 @@ def do_index_pass(db, update=False):
                 if is_dotfile(filename) or filename in ('FINJA', 'FINJA.lst'):
                     # Skip "hidden" and index files
                     continue
-                ext = None
+                ext  = None
+                ext2 = None
                 if '.' in filename:
                     split = filename.split(os.path.extsep)
                     ext = split[-1].lower()
-                    ext2 = None
                     if len(split) > 2:
                         ext2 = split[-2].lower()
                         if len(ext2) > 4:
