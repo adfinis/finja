@@ -15,7 +15,7 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
-_database_version = 3
+_database_version = 4
 
 # If the user pipes we write our internal encoding which is UTF-8
 # This is one of the great things about Python 3, no more hacky hacky
@@ -83,6 +83,7 @@ _ignore_ext = set([
     "pyc",
     "ai",
     "ps",
+    "pdf",
     "png",
     "bmp",
     "gif",
@@ -254,7 +255,6 @@ _search_query = """
         i.token_id=?
     {terms}
     {ignore}
-    {file_mode_hint}
 """
 
 _clear_found_files = """
@@ -525,7 +525,7 @@ def get_db(create=False):
             CREATE INDEX finja_file_idx ON finja (file_id);
         """)
         connection.execute("""
-            CREATE INDEX finja_line_idx ON finja (line);
+            CREATE INDEX finja_file_line_idx ON finja (file_id, line);
         """)
         connection.execute("""
             CREATE TABLE
@@ -593,16 +593,19 @@ def gen_search_query(pignore, file_mode, terms=1):
     join_list = []
     term_list = []
     if file_mode:
-        file_mode_hint = "AND i.line = -1"
+        file_mode_hint = ""
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
                     finja as i{0}
                 ON
                     i.file_id == i{0}.file_id
+                    AND
+                    i.line = -1
+                    AND
+                    i{0}.line = -1
             """.format(x))
     else:
-        file_mode_hint = "AND i.line != -1"
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
@@ -611,6 +614,10 @@ def gen_search_query(pignore, file_mode, terms=1):
                     i.file_id == i{0}.file_id
                     AND
                     i.line == i{0}.line
+                    AND
+                    i.line != -1
+                    AND
+                    i{0}.line != -1
             """.format(x))
     for x in range(terms - 1):
         term_list.append("AND i{0}.token_id = ?".format(x))
@@ -623,7 +630,6 @@ def gen_search_query(pignore, file_mode, terms=1):
         ignore = "\n".join(ignore_list),
         finja_joins = "\n".join(join_list),
         terms = "\n".join(term_list),
-        file_mode_hint = file_mode_hint,
     )
 
 # OS access
@@ -756,7 +762,8 @@ def do_index_pass(db, update=False):
 def index_file(db, file_path, update = False):
     global _index_count
     if six.PY2:
-        file_path = unicode(file_path, encoding="UTF-8")
+        if not isinstance(file_path, unicode):
+            file_path = unicode(file_path, encoding="UTF-8")
     con        = db[0]
     # Bad symlinks etc.
     try:
