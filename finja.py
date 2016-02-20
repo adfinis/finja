@@ -255,6 +255,7 @@ _search_query = """
         i.token_id=?
     {terms}
     {ignore}
+    {file_mode_hint}
 """
 
 _clear_found_files = """
@@ -593,7 +594,7 @@ def gen_search_query(pignore, file_mode, terms=1):
     join_list = []
     term_list = []
     if file_mode:
-        file_mode_hint = ""
+        file_mode_hint = "AND i.line = -1"
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
@@ -606,6 +607,7 @@ def gen_search_query(pignore, file_mode, terms=1):
                     i{0}.line = -1
             """.format(x))
     else:
+        file_mode_hint = "AND i.line != -1"
         for x in range(terms - 1):
             join_list.append("""
                 JOIN
@@ -630,6 +632,7 @@ def gen_search_query(pignore, file_mode, terms=1):
         ignore = "\n".join(ignore_list),
         finja_joins = "\n".join(join_list),
         terms = "\n".join(term_list),
+        file_mode_hint = file_mode_hint
     )
 
 # OS access
