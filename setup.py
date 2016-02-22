@@ -21,6 +21,7 @@ setup(
         "binaryornot",
         "six",
         "chardet",
+	"termcolor",
     ],
     author = "David Vogt, Jean-Louis Fuchs",
     author_email = "dv@winged.ch, ganwell@fangorn.ch",

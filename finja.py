@@ -14,6 +14,7 @@ import pickle
 import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
+from termcolor import colored
 
 _database_version = 4
 
@@ -589,7 +590,8 @@ def gen_search_query(pignore, file_mode, terms=1):
             f.path,
             f.id,
             i.line,
-            f.encoding
+            f.encoding,
+            i.token_id
         """
     join_list = []
     term_list = []
@@ -1110,12 +1112,11 @@ def display_no_context(f, match, path, file_name):
             get_line(path, match[2], f)[:-1]
         ))
     else:
-        print("%s:%5d:%s" % (
-            file_name,
-            match[2],
+        print("%s:%s:%s" % (
+            colored(file_name, 'magenta'),
+            colored("%5d" % match[2], 'green'),
             get_line(path, match[2], f)[:-1]
         ))
-
 
 def display_duplicates(db, file_):
     if _args.raw:
