@@ -1,4 +1,4 @@
-finja (1.0.5-1) stable; urgency=low
+finja (1.0.6-1) stable; urgency=low
 
   * Add argparse as requires for CentOS6 (@Pablo Verges)
   * Add search term coloring (@schtibe)

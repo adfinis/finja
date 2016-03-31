@@ -129,7 +129,7 @@ By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
 Changes
 =======
 
-1.0.5
+1.0.6
 
 * Add argparse as requires for CentOS6 (@Pablo Verges)
 * Add search term coloring (@schtibe)
