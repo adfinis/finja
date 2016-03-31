@@ -21,6 +21,7 @@ setup(
         "binaryornot",
         "six",
         "chardet",
+        "termcolor",
         "argparse",
     ],
     author = "David Vogt, Jean-Louis Fuchs",
