@@ -15,6 +15,26 @@ import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 
+logo = """
+
+   ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄        ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄
+  ▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌▐░░▌      ▐░▌▐░░░░░░░░░░░▌▐░░░░░░░░░░░▌
+  ▐░█▀▀▀▀▀▀▀▀▀  ▀▀▀▀█░█▀▀▀▀ ▐░▌░▌     ▐░▌ ▀▀▀▀▀█░█▀▀▀ ▐░█▀▀▀▀▀▀▀█░▌
+  ▐░▌               ▐░▌     ▐░▌▐░▌    ▐░▌      ▐░▌    ▐░▌       ▐░▌
+  ▐░█▄▄▄▄▄▄▄▄▄      ▐░▌     ▐░▌ ▐░▌   ▐░▌      ▐░▌    ▐░█▄▄▄▄▄▄▄█░▌
+  ▐░░░░░░░░░░░▌     ▐░▌     ▐░▌  ▐░▌  ▐░▌      ▐░▌    ▐░░░░░░░░░░░▌
+  ▐░█▀▀▀▀▀▀▀▀▀      ▐░▌     ▐░▌   ▐░▌ ▐░▌      ▐░▌    ▐░█▀▀▀▀▀▀▀█░▌
+  ▐░▌               ▐░▌     ▐░▌    ▐░▌▐░▌      ▐░▌    ▐░▌       ▐░▌
+  ▐░▌           ▄▄▄▄█░█▄▄▄▄ ▐░▌     ▐░▐░▌ ▄▄▄▄▄█░▌    ▐░▌       ▐░▌
+  ▐░▌     /)   ▐░░░░░░░░░░░▌▐░▌      ▐░░▌▐░░░░░░░▌    ▐░▌       ▐░▌
+   ▀     //     ▀▀▀▀▀▀▀▀▀▀▀  ▀        ▀▀  ▀▀▀▀▀▀▀      ▀         ▀
+.-------| |--------------------------------------------.__
+|WMWMWMW| |>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>:>
+`-------| |--------------------------------------------'^^
+         \\
+          \)
+"""
+
 _database_version = 4
 
 # If the user pipes we write our internal encoding which is UTF-8
@@ -1189,7 +1209,10 @@ def main(argv=None):
     global _cache_size
     if not argv:  # pragma: no cover
         argv = sys.argv[1:]
-    parser = argparse.ArgumentParser(description='Index and find stuff')
+    parser = argparse.ArgumentParser(
+        description='Index and find stuff',
+        add_help=False
+    )
     parser.add_argument(
         '--interpunct',
         help='use international seperators',
@@ -1259,6 +1282,12 @@ def main(argv=None):
              'will cause finja to rescan everything. Use with -i or -u',
         action='store_true',
     )
+    parser.add_argument(
+        '--help',
+        '-h',
+        help='display help',
+        action='store_true',
+    )
     if six.PY2:
         parser.add_argument(
             'search',
@@ -1273,6 +1302,10 @@ def main(argv=None):
             nargs='*',
         )
     args = parser.parse_args(argv)
+    if args.help:
+        print(logo)
+        parser.print_help()
+        sys.exit(1)
     _args = args  # noqa
     if args.less_memory:
         _cache_size = int(_cache_size / 100)  # noqa
