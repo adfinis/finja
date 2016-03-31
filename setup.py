@@ -1,3 +1,4 @@
+# coding=UTF-8
 """Setuptools package definition"""
 
 from setuptools import setup
