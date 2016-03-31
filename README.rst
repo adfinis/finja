@@ -124,4 +124,13 @@ international interpunct, that can be switched on. Please open an issue on Githu
 and describe your problem, we will try to find a generic solution. If we don't
 find such a solution we might add a setting.
 
-By dv@winged.ch and ganwell@fangorn.ch
+By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
+
+Changes
+=======
+
+1.0.5
+
+* Add argparse as requires for CentOS6 (@Pablo Verges)
+* Add search term coloring (@schtibe)
+* Add finja logo to help (@ganwell)

@@ -1,3 +1,11 @@
+finja (1.0.5-1) stable; urgency=low
+
+  * Add argparse as requires for CentOS6 (@Pablo Verges)
+  * Add search term coloring (@schtibe)
+  * Add finja logo to help (@ganwell)
+
+ -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 31 Mar 2016 17:05:35 +0100
+
 finja (1.0.4-1) unstable; urgency=low
 
   * File mode hint is still needed

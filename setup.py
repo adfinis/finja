@@ -8,7 +8,7 @@ with open('README.rst', 'r') as f:
 
 setup(
     name = "finja",
-    version = "1.0.4",
+    version = "1.0.5",
     py_modules = ["finja"],
     entry_points = {
         'console_scripts': [
@@ -24,14 +24,14 @@ setup(
         "termcolor",
         "argparse",
     ],
-    author = "David Vogt, Jean-Louis Fuchs",
-    author_email = "dv@winged.ch, ganwell@fangorn.ch",
+    author = "Jean-Louis Fuchs, David Vogt, Stefan Heinemann, Pablo Vergés",
+    author_email = "ganwell@fangorn.ch",
     description = (
         "Index stuff and find it fast and without bloat"
     ),
     long_description = README_TEXT,
     keywords = "code index find text open",
-    url = "https://ganwell.github.io",
+    url = "https://www.adfinis-sygroup.ch",
     classifiers = [
         "Development Status :: 5 - Production/Stable",
         "Environment :: Console",
