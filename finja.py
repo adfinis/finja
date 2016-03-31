@@ -610,8 +610,7 @@ def gen_search_query(pignore, file_mode, terms=1):
             f.path,
             f.id,
             i.line,
-            f.encoding,
-            i.token_id
+            f.encoding
         """
     join_list = []
     term_list = []
@@ -1045,10 +1044,10 @@ def search(
             if not _args.raw:
                 display_duplicates(db, match[1])
     else:
-        sort_format_result(db, res)
+        sort_format_result(db, res, search)
 
 
-def sort_format_result(db, res_set):
+def sort_format_result(db, res_set, search):
     dirname = None
     old_file = -1
     for match in sorted(
@@ -1069,13 +1068,15 @@ def sort_format_result(db, res_set):
                         new_dirname = "."
                     if dirname != new_dirname:
                         dirname = new_dirname
-                        print("%s:" % os.path.relpath(dirname, _cwd))
+                        print("%s:" % (
+                            colored(os.path.relpath(dirname, _cwd), "yellow")
+                        ))
                     file_name = os.path.basename(path)
                 else:
                     file_name = path
                 context = _args.context
                 if context == 1 or _args.raw:
-                    display_no_context(f, match, path, file_name)
+                    display_no_context(f, match, path, file_name, search)
                 else:
                     display_context(f, context, match, path, file_name)
         except (OSError, IOError):
@@ -1124,7 +1125,7 @@ def display_context(f, context, match, path, file_name):
     ))
 
 
-def display_no_context(f, match, path, file_name):
+def display_no_context(f, match, path, file_name, search):
     if _args.raw:
         print("%s\0%5d\0%s" % (
             os.path.abspath(file_name),
@@ -1132,11 +1133,15 @@ def display_no_context(f, match, path, file_name):
             get_line(path, match[2], f)[:-1]
         ))
     else:
+        line = get_line(path, match[2], f)[:-1]
+        for term in search:
+            line = line.replace(term, colored(term, 'red'))
         print("%s:%s:%s" % (
             colored(file_name, 'magenta'),
             colored("%5d" % match[2], 'green'),
-            get_line(path, match[2], f)[:-1]
+            line
         ))
+
 
 def display_duplicates(db, file_):
     if _args.raw:
