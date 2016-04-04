@@ -134,3 +134,7 @@ Changes
 * Add argparse as requires for CentOS6 (@Pablo Verges)
 * Add search term coloring (@schtibe)
 * Add finja logo to help (@ganwell)
+
+1.0.7
+
+* Case-insensitive highlighting (@ganwell)

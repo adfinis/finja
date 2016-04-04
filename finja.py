@@ -16,6 +16,7 @@ from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 from termcolor import colored
 
+
 logo = """
 
    ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄        ▄  ▄▄▄▄▄▄▄▄▄▄▄  ▄▄▄▄▄▄▄▄▄▄▄
@@ -32,7 +33,7 @@ logo = """
 .-------| |--------------------------------------------.__
 |WMWMWMW| |>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>:>
 `-------| |--------------------------------------------'^^
-         \\
+         \\\\
           \)
 """
 
@@ -786,8 +787,8 @@ def do_index_pass(db, update=False):
 def index_file(db, file_path, update = False):
     global _index_count
     if six.PY2:
-        if not isinstance(file_path, unicode):
-            file_path = unicode(file_path, encoding="UTF-8")
+        if not isinstance(file_path, unicode):  # noqa
+            file_path = unicode(file_path, encoding="UTF-8")  # noqa
     con        = db[0]
     # Bad symlinks etc.
     try:
@@ -1134,7 +1135,10 @@ def display_no_context(f, match, path, file_name, search):
         ))
     else:
         line = get_line(path, match[2], f)[:-1]
+        iterms = set()
         for term in search:
+            iterms.update(re.findall(term, line, re.I))
+        for term in iterms:
             line = line.replace(term, colored(term, 'red'))
         print("%s:%s:%s" % (
             colored(file_name, 'magenta'),
