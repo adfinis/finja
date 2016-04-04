@@ -1,3 +1,9 @@
+finja (1.0.7-1) stable; urgency=low
+
+  * Case-insensitive highlighting (@ganwell)
+
+ -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 31 Mar 2016 17:05:35 +0100
+
 finja (1.0.6-1) stable; urgency=low
 
   * Add argparse as requires for CentOS6 (@Pablo Verges)
