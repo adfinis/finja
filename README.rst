@@ -137,12 +137,16 @@ By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
 Changes
 =======
 
+1.0.8
+
+* Conditionally add the argparse dependancy on python 2.6 (@ganwell)
+
+1.0.7
+
+* Case-insensitive highlighting (@ganwell)
+
 1.0.6
 
 * Add argparse as requires for CentOS6 (@Pablo Verges)
 * Add search term coloring (@schtibe)
 * Add finja logo to help (@ganwell)
-
-1.0.7
-
-* Case-insensitive highlighting (@ganwell)

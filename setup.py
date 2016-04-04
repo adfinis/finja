@@ -1,15 +1,25 @@
 # coding=UTF-8
 """Setuptools package definition"""
+import sys
 
 from setuptools import setup
 
+_install_requires = [
+    "binaryornot",
+    "six",
+    "chardet",
+    "termcolor",
+]
+
+if sys.version_info < (2, 7):
+    _install_requires.append("argparse")
 
 with open('README.rst', 'r') as f:
     README_TEXT = f.read()
 
 setup(
     name = "finja",
-    version = "1.0.7",
+    version = "1.0.8",
     py_modules = ["finja"],
     entry_points = {
         'console_scripts': [
@@ -18,13 +28,7 @@ setup(
             "finjadup=finja:dup_main"
         ]
     },
-    install_requires = [
-        "binaryornot",
-        "six",
-        "chardet",
-        "termcolor",
-        "argparse",
-    ],
+    install_requires = _install_requires,
     author = "Jean-Louis Fuchs, David Vogt, Stefan Heinemann, Pablo Vergés",
     author_email = "ganwell@fangorn.ch",
     description = (
