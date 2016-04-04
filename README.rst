@@ -85,7 +85,15 @@ If there are some badly formatted files that seriously cramp your style.
 
    finja readlines for | cut -c -`tput cols`
 
-Thats it and it works.
+Index stuff in read-only directories.
+
+.. code:: bash
+
+   mkdir sysinclude
+   cd sysinclude
+   find /usr/include/ -xdev > FINJA.lst
+   eatmydata finja -i
+   finja AF_INET6
 
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
 are not google!
