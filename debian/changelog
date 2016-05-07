@@ -1,37 +1,16 @@
+finja (1.0.10-1) stable; urgency=low
+
+  * Make finja ready for automatic packaging
+   - https://github.com/adfinis-sygroup/finja/commit/dc3e8ab
+
+ -- Jean-Louis Fuchs <ganwell@fangorn.ch>  Sat, 07 May 2016 14:56:49 +0000
+
 finja (1.0.8-1) stable; urgency=low
 
-  * Conditionally add the argparse dependancy on python 2.6 (@ganwell)
-
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 31 Mar 2016 17:05:35 +0100
-
-finja (1.0.7-1) stable; urgency=low
-
-  * Case-insensitive highlighting (@ganwell)
-
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 31 Mar 2016 17:05:35 +0100
-
-finja (1.0.6-1) stable; urgency=low
-
-  * Add argparse as requires for CentOS6 (@Pablo Verges)
+  * Conditionally add the argparse dependancy on python 2.6 (@ganwell)Case-insensitive highlighting (@ganwell)Add argparse as requires for CentOS6 (@Pablo Verges)
   * Add search term coloring (@schtibe)
   * Add finja logo to help (@ganwell)
-
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 31 Mar 2016 17:05:35 +0100
-
-finja (1.0.4-1) unstable; urgency=low
-
   * File mode hint is still needed
+  * Force SQLIte to use the right index
 
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 20 Feb 2016 17:05:35 +0100
-
-finja (1.0.3-1) unstable; urgency=low
-
-  * Force SQLite to use the right index
-
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 20 Feb 2016 16:05:35 +0100
-
-finja (1.0.2-1) unstable; urgency=low
-
-  * Initial release
-
- -- Jean-Loius Fuchs <jean-louis.fuchs@adfinis-sygroup.ch>  Mon, 19 Feb 2016 16:05:35 +0100
+ -- Jean-Louis Fuchs <ganwell@fangorn.ch>  Sat, 20 Feb 2016 19:40:42 +0000

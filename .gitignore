@@ -4,3 +4,7 @@
 *.pyc
 /build
 /dist
+/.deps
+/debian/python*
+/debian/files
+/.pybuild
