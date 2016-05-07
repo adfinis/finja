@@ -3,6 +3,7 @@
 import sys
 
 from setuptools import setup
+from setuptools import find_packages
 
 _install_requires = [
     "binaryornot",
@@ -14,13 +15,19 @@ _install_requires = [
 if sys.version_info < (2, 7):
     _install_requires.append("argparse")
 
+__version__  = None
+version_file = "finja/version.py"
+with open(version_file) as f:
+    code = compile(f.read(), version_file, 'exec')
+    exec(code)
+
 with open('README.rst', 'r') as f:
     README_TEXT = f.read()
 
 setup(
     name = "finja",
-    version = "1.0.8",
-    py_modules = ["finja"],
+    version = __version__,
+    packages = find_packages(),
     entry_points = {
         'console_scripts': [
             "finja=finja:main",

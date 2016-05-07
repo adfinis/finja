@@ -4,18 +4,17 @@ import codecs
 import hashlib
 import math
 import os
+import pickle
 import re
 import sqlite3
 import stat
 import sys
 import time
-import pickle
 
 import six
 from binaryornot.check import is_binary
 from chardet.universaldetector import UniversalDetector
 from termcolor import colored
-
 
 logo = """
 
@@ -1332,5 +1331,5 @@ def main(argv=None):
         update=args.update
     )
     get_db()[0].close()
-    if not _index_count and not args.search:
+    if not _index_count and args.batch:
         sys.exit(1)
