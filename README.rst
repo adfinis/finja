@@ -98,22 +98,43 @@ Index stuff in read-only directories.
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
 are not google!
 
+
+Install Debian/Ubuntu
+=====================
+
+Sources:
+
+.. code-block:: text
+
+   deb https://aptly.ad-sy.ch/adsy-public/debian wheezy main
+
+   deb https://aptly.ad-sy.ch/adsy-public/debian jessie main
+
+   deb https://aptly.ad-sy.ch/adsy-public/ubuntu trusty main
+
+   deb https://aptly.ad-sy.ch/adsy-public/ubuntu vivid main
+
+   deb https://aptly.ad-sy.ch/adsy-public/ubuntu xenial main
+
+Install:
+
+.. code-block:: bash
+
+   apt-get update
+   apt-get install python-finja
+
 Installation
 ============
 
 If you're using Arch Linux, there's an AUR package here:
 https://aur.archlinux.org/packages/finja/
 
-If you're using Debian Jessie, there's a deb package here:
-
-http://1042.ch/finja/jessie/ (Do not install the python3 version it may
-segfault because of a bug in Python 3.4)
-
 On other platforms, use python's package manager, pip:
 
 .. code:: bash
 
    pip install -U finja
+
 
 Why?
 ====
