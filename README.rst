@@ -32,8 +32,8 @@ Also works from a subdirectory.
 .. code:: bash
 
    finja --index
-   cd submdir
-   find huhu
+   cd subdir
+   finja huhu
 
 Tip: If you are sure that your system survives till everything is indexed use
 eatmydata.
