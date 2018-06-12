@@ -1016,7 +1016,10 @@ def search(
     if _args.vacuum:
         con.set_progress_handler(progress, 100000)
         con.execute(_delete_free_tokens)
+        ilevel = con.isolation_level
+        con.isolation_level = None
         con.execute("VACUUM;")
+        con.isolation_level = ilevel
         con.set_progress_handler(None, 100000)
     if not search:
         return
