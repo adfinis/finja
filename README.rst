@@ -159,6 +159,12 @@ By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
 Changes
 =======
 
+1.0.11
+
+* Add workaround for VACUUM bug in python
+
+* Multiple version due bugs in packaging (rereleases)
+
 1.0.8
 
 * Conditionally add the argparse dependancy on python 2.6 (@ganwell)
