@@ -1171,6 +1171,15 @@ def col_main():
             ":".join(split)
         )
 
+def grep_main():
+    for line in sys.stdin.readlines():
+        split = line.split('\0')
+        split[0] = os.path.relpath(split[0], _cwd)
+        split[1] = "%s:0" % split[1].strip()
+        sys.stdout.write(
+            ":".join(split)
+        )
+
 
 def reduplicate(db, last_file_path, to_duplicate):
     con = db[0]

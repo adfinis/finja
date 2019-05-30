@@ -98,6 +98,23 @@ Index stuff in read-only directories.
 Caveat: We do not support languages that don't do spaces nor interpunct. Hey we
 are not google!
 
+Using in vim/neovim:
+
+* Install https://github.com/mileszs/ack.vim
+
+* Create a finjaack script
+
+.. code:: bash
+
+   #!/bin/sh
+
+   finja -r "$@" | finjagrep
+
+* Set finjaack as ackprg
+
+.. code:: vim
+
+   let g:ackprg = 'finjack'
 
 
 Installation
@@ -129,6 +146,10 @@ By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
 
 Changes
 =======
+
+1.1.0
+
+* Add finjagrep which emulates grep output for usage with ack.vim
 
 1.0.11
 

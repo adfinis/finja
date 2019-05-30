@@ -4,9 +4,16 @@ Changelog
 
 finja
 
+Version 1.1.0
+=============
+
+released 2019-05-30T15:00:00+0000 by Jean-Louis Fuchs <ganwell@fangorn.ch>:
+
+* Add finjagrep which emulates grep output for usage with ack.vim
+
 
 Version 1.0.10
-===============
+==============
 
 released 2016-05-07T14:56:49+0000 by Jean-Louis Fuchs <ganwell@fangorn.ch>:
 
@@ -16,9 +23,8 @@ released 2016-05-07T14:56:49+0000 by Jean-Louis Fuchs <ganwell@fangorn.ch>:
  - https://github.com/adfinis-sygroup/finja/commit/dc3e8ab
 
 
-
 Version 1.0.8
-===============
+=============
 
 released 2016-02-20T19:40:42+0000 by Jean-Louis Fuchs <ganwell@fangorn.ch>:
 

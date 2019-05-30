@@ -1,7 +1,0 @@
-#!/usr/bin/make -f
-
-export PYBUILD_DESTDIR_python2=debian/python-finja/
-export PYBUILD_DESTDIR_python3=debian/python3-finja/
-
-%:
-	dh $@ --with python2,python3 --buildsystem=pybuild

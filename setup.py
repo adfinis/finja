@@ -32,6 +32,7 @@ setup(
         'console_scripts': [
             "finja=finja:main",
             "finjacol=finja:col_main",
+            "finjagrep=finja:grep_main",
             "finjadup=finja:dup_main"
         ]
     },
@@ -56,5 +57,7 @@ setup(
         "Programming Language :: Python :: 2.6",
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: Implementation :: PyPy"
     ]
 )

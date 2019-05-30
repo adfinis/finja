@@ -1,3 +1,0 @@
-[submodule "pyproject"]
-	path = pyproject
-	url = https://github.com/adfinis-sygroup/pyproject.git
