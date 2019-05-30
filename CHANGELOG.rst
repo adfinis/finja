@@ -4,6 +4,13 @@ Changelog
 
 finja
 
+Version 1.1.1
+=============
+
+released 2019-05-30T18:00:00+0000 by Jean-Louis Fuchs <ganwell@fangorn.ch>:
+
+* Ignore empty lines in finjacol/finjagrep
+
 Version 1.1.0
 =============
 

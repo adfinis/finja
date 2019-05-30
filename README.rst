@@ -147,6 +147,10 @@ By ganwell@fangorn.ch and David Vogt, Stefan Heinemann, Pablo Vergés
 Changes
 =======
 
+1.1.1
+
+* Ignore empty lines in finjacol/finjagrep
+
 1.1.0
 
 * Add finjagrep which emulates grep output for usage with ack.vim
