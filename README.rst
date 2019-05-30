@@ -170,34 +170,3 @@ Changes
 * Add argparse as requires for CentOS6 (@Pablo Verges)
 * Add search term coloring (@schtibe)
 * Add finja logo to help (@ganwell)
-
-OUTDATED Install Debian/Ubuntu/Arch
-===================================
-
-We don't maintain the deb and arch packages anymore, the last version is 1.0.10
-
-Sources:
-
-.. code-block:: text
-
-   deb http://aptly.adfinis-sygroup.ch/adsy-public/debian wheezy main
-
-   deb http://aptly.adfinis-sygroup.ch/adsy-public/debian jessie main
-
-   deb http://aptly.adfinis-sygroup.ch/adsy-public/ubuntu trusty main
-
-   deb http://aptly.adfinis-sygroup.ch/adsy-public/ubuntu vivid main
-
-   deb http://aptly.adfinis-sygroup.ch/adsy-public/ubuntu xenial main
-
-Install:
-
-.. code-block:: bash
-
-   wget -O - http://aptly.adfinis-sygroup.ch/aptly.asc | apt-key add -
-   apt-get update
-   apt-get install python-finja
-
-
-If you're using Arch Linux, there's an AUR package here:
-https://aur.archlinux.org/packages/finja/
